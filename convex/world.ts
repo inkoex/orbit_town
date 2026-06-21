@@ -1,6 +1,6 @@
 import { ConvexError, v } from 'convex/values';
 import { internalMutation, mutation, query } from './_generated/server';
-import { characters } from '../data/characters';
+import { creatableCharacters } from '../data/characters';
 import { insertInput } from './aiTown/insertInput';
 import {
   DEFAULT_NAME,
@@ -11,6 +11,7 @@ import {
 import { playerId } from './aiTown/ids';
 import { kickEngine, startEngine, stopEngine } from './aiTown/main';
 import { engineInsertInput } from './engine/abstractGame';
+import { themeFromTileSetUrl } from './util/theme';
 
 export const defaultWorldStatus = query({
   handler: async (ctx) => {
@@ -128,10 +129,17 @@ export const joinWorld = mutation({
     if (!world) {
       throw new ConvexError(`Invalid world ID: ${args.worldId}`);
     }
+    const worldMap = await ctx.db
+      .query('maps')
+      .withIndex('worldId', (q) => q.eq('worldId', world._id))
+      .unique();
+    const creatable = creatableCharacters(
+      worldMap ? themeFromTileSetUrl(worldMap.tileSetUrl) : 'folk',
+    );
     // const { tokenIdentifier } = identity;
     return await insertInput(ctx, world._id, 'join', {
       name,
-      character: characters[Math.floor(Math.random() * characters.length)].name,
+      character: creatable[Math.floor(Math.random() * creatable.length)].name,
       description: `${DEFAULT_NAME} is a human player`,
       // description: `${identity.givenName} is a human player`,
       tokenIdentifier: DEFAULT_NAME,

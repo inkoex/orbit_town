@@ -5,9 +5,11 @@ import { Conversation, conversationInputs } from './conversation';
 import { movePlayer } from './movement';
 import { inputHandler } from './inputHandler';
 import { point } from '../util/types';
-import { Descriptions } from '../../data/characters';
+import { creatableCharacters, Descriptions } from '../../data/characters';
 import { AgentDescription } from './agentDescription';
 import { Agent } from './agent';
+import { themeFromTileSetUrl } from '../util/theme';
+import { resolveAgentSpec } from './createAgentValidation';
 
 export const agentInputs = {
   finishRememberConversation: inputHandler({
@@ -118,17 +120,26 @@ export const agentInputs = {
   }),
   createAgent: inputHandler({
     args: {
-      descriptionIndex: v.number(),
+      descriptionIndex: v.optional(v.number()),
+      custom: v.optional(
+        v.object({
+          name: v.string(),
+          character: v.string(),
+          identity: v.string(),
+          plan: v.string(),
+        }),
+      ),
     },
     handler: (game, now, args) => {
-      const description = Descriptions[args.descriptionIndex];
-      const playerId = Player.join(
-        game,
-        now,
-        description.name,
-        description.character,
-        description.identity,
-      );
+      const { name, character, identity, plan } = resolveAgentSpec(args, {
+        descriptions: Descriptions,
+        existingNames: [...game.playerDescriptions.values()].map((description) => description.name),
+        agentCount: game.world.agents.size,
+        validCharacters: creatableCharacters(
+          themeFromTileSetUrl(game.worldMap.tileSetUrl),
+        ).map((candidate) => candidate.name),
+      });
+      const playerId = Player.join(game, now, name, character, identity);
       const agentId = game.allocId('agents');
       game.world.agents.set(
         agentId,
@@ -145,8 +156,8 @@ export const agentInputs = {
         agentId,
         new AgentDescription({
           agentId: agentId,
-          identity: description.identity,
-          plan: description.plan,
+          identity,
+          plan,
         }),
       );
       return { agentId };
