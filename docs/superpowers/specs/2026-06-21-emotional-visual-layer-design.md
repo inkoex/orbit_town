@@ -1,7 +1,7 @@
 # 설계: A — 감성·시각 레이어 (최소 v1)
 
 **날짜:** 2026-06-21
-**상태:** 설계 합의 완료 · Codex 리뷰 6건 반영 완료 · 검토 대기
+**상태:** 설계 합의 완료 · Codex(6건)+Grok 리뷰 반영 완료 · 검토 대기
 **하위 조각:** A (전체 플랫폼 비전의 첫 번째 조각)
 
 ---
@@ -41,7 +41,9 @@
 ## 3. 아키텍처 결정
 
 - **AI Town 확장** (엔진 재작성 안 함). 검증된 시뮬레이션 루프·메모리·대화·렌더링을 그대로 재사용.
-- **작업 격리**: `feature/emotional-visual-layer` 브랜치에서 작업. 원본 에셋(`data/gentle.js`, 기존 folk 캐릭터)은 **삭제하지 않고 우주 에셋을 옆에 추가**한 뒤 활성 설정만 전환.
+- **작업 격리 + 테마 전환 메커니즘**(Grok 리뷰 #4): `feature/emotional-visual-layer` 브랜치에서 작업. 원본 에셋(`data/gentle.js`, 기존 folk 캐릭터)은 **삭제하지 않고 우주 에셋을 옆에 추가**. 단 `init.ts`가 `import * as map from '../data/gentle'` + `Descriptions`를 **하드코딩**하므로 전환 방식을 명시한다:
+  - `data/characters.ts`에 기존 folk + 우주 캐릭터를 모두 두고 **활성 세트(`Descriptions`/`characters`)를 export**.
+  - 맵·활성 세트 선택을 **환경변수 플래그**(예: `WORLD_THEME=space|folk`)로 `init.ts`에서 분기. 기본은 검증 편의를 위해 folk 유지 가능, 우주 검증 시 플래그 전환.
 - **백엔드 = Convex 유지**. 개발은 무료 클라우드 티어 사용. 상용화 시 셀프호스팅(Docker) 또는 매니지드 중 배포 단계에서 결정 — 코드 변경 없음, 락인 우려 없음(셀프호스팅 항상 가능).
 - **뷰 = 평면(top-down) 우주테마로 시작**. 아이소메트릭(Orbit 2.5D 룩)은 후속 작업.
   - ⚠️ **수정(Codex 리뷰 #4)**: "world→screen 함수 하나로 iso-ready"는 **오판**이었다. 실제 좌표 계산은 여러 곳에 분산돼 있고(정변환 `Player.tsx`, 클릭 역변환 `PixiGame.tsx`, 맵 렌더 `PixiStaticMap.tsx`), iso 전환엔 역변환·클릭 이동·맵 렌더·viewport·depth sorting이 함께 바뀐다. 따라서 **v1에서는 iso 대비 추상화를 넣지 않는다**(YAGNI). 실제 iso 작업 시 `project / unproject + depthKey` 인터페이스로 제대로 설계한다.
@@ -55,11 +57,13 @@
    - ⚠️ **수정(Codex 리뷰 #3)**: `PixiStaticMap.tsx`는 타일셋 atlas를 **인덱스**로 참조하고(`tiles[tileIndex]`) 맵 데이터(`bgTiles`/`objectTiles`)는 인덱스만 저장한다. **타일셋 PNG만 교체하면 같은 인덱스가 다른 그림을 가리켜 맵이 깨진다.** 따라서 전략을 명시한다:
    - **채택 전략(v1)**: **기존 타일셋 atlas 배치(인덱스)를 유지한 채 각 타일을 우주 톤으로 리페인트**. 맵 데이터·인덱스 무변경, 그림만 교체 → 최소 위험. (대안: 호환 우주 타일셋 제작, 또는 인덱스 매핑 테이블 — 더 큰 작업이라 v1 제외.)
    - **에셋 거버넌스**: 출처·라이선스(상업적 사용 가능, CC0 등)·attribution을 `data/assets/CREDITS.md`(신규)에 기록.
-2. **우주 테마 프리메이드 아바타 6~8종**: 무료/상업적 사용 가능 32x32 스프라이트를 새 spritesheet로 추가, `data/characters.ts`의 `characters` 배열에 등록. (라이선스·attribution은 위 CREDITS.md에 함께 기록.)
-3. **최소 커스텀 에이전트 생성 UI** (`AgentCreator.tsx`): 아바타 비주얼 피커(그리드) + 이름 + identity(성격) + plan 입력. 기존 `createAgent` 인풋을 확장해 `{name, identity, plan, character}`를 받게 함.
+2. **우주 테마 프리메이드 아바타 6~8종**: 무료/상업적 사용 가능 32x32 스프라이트를 추가, `data/characters.ts`의 `characters` 배열에 등록. (라이선스·attribution은 위 CREDITS.md에 기록.)
+   - ⚠️ **선행 조건(Grok 리뷰 #1)**: 각 캐릭터는 PNG **그리고** 대응하는 **spritesheet 프레임 데이터(`data/spritesheets/*.ts`)** 가 둘 다 있어야 한다(현재 folk는 `32x32folk.png` 공유 + f1~f8 분할 정의). PNG만으론 부족. → **에셋 수급이 Phase 0 블로커**(§10 참고).
+3. **최소 커스텀 에이전트 생성 UI** (`AgentCreator.tsx`): 아바타 비주얼 피커(그리드) + 이름 + identity(성격) + plan 입력.
+   - ⚠️ **createAgent 확장(Grok 리뷰 #2)**: 현재 핸들러는 `args: { descriptionIndex }`만 받아 `Descriptions[index]`를 쓴다. **기존 index 경로(init용)는 유지**하고 **커스텀 경로 `{name, identity, plan, character}`를 추가**(union 입력). `Player.join`(player.ts:212)이 이미 `characters` 배열에 없는 character를 throw로 거부하므로, 커스텀 character는 반드시 등록돼 있어야 하며 이 검증이 화이트리스트 가드를 일부 무료로 제공한다.
 4. **영속성 (스키마 변경 없음)**:
    - ⚠️ **수정(Codex 리뷰 #5)**: 데이터 모델 확장 **불필요**. 필요한 필드가 이미 존재한다 — `playerDescriptions`{name, description, character}, `agentDescriptions`{identity, plan}. createAgent가 UI 입력을 이 **기존 필드에 매핑**(name·character→playerDescription, identity·plan→agentDescription)할 뿐, 새 테이블·스키마 변경 없음.
-5. **PlayerDetails**: 클릭 시 커스텀 정보 표시.
+5. **PlayerDetails**: 클릭 시 커스텀 정보 표시. (Grok 리뷰 #6: 현재 `PlayerDetails.tsx:226`은 `playerDescription.description`만 노출 → 에이전트의 `identity`/`plan`(`agentDescriptions`에 저장)도 함께 보이도록 추가.)
 6. **서버측 생성 가드 (보안)**:
    - ⚠️ **추가(Codex 리뷰 #2)**: `sendWorldInput`은 인증이 꺼져 있고 `args: v.any()`로 임의 입력을 받는다. 공개 시 무제한 에이전트 생성으로 비용·월드 상태 소진 위험. v1에서 인증은 제외하되 **createAgent 핸들러에 서버측 제한**을 둔다: ①월드당 최대 에이전트 수 ②name/identity/plan 길이 검증 ③허용된 character ID 화이트리스트 ④중복 이름 정책 ⑤생성 중복/연타 요청 방지(idempotency).
 
@@ -104,6 +108,7 @@ LLM 호출은 Convex action 안(=백엔드)에서 일어난다. 백엔드가 클
   - `convex/util/llm.ts`의 **custom provider**가 이미 `LLM_API_URL` + `LLM_MODEL`(채팅) + `LLM_EMBEDDING_MODEL`(임베딩)을 각각 지정 가능. → `LLM_API_URL=https://openrouter.ai/api/v1` 로 설정.
   - 채팅은 테스트용 무료 모델(`...:free`) 사용 가능(레이트리밋 있음).
 - ⚙️ **`convex/util/llm.ts` 수정 필요(작음)**: 임베딩 **차원으로 공급자를 추측**하는 검증 로직(`EMBEDDING_DIMENSION` switch)을 선택한 OpenRouter 임베딩 모델의 차원에 맞게 조정. `EMBEDDING_DIMENSION`을 그 모델 출력 차원으로 설정.
+- 📌 **범위 축소 메모(Grok 리뷰 #3 반론)**: Grok은 "chat용/embedding용 config 완전 분리"를 가장 큰 코드 변경으로 우려했으나, 이는 OpenRouter(chat)+OpenAI(embedding) **2개 공급자**를 전제로 한 것이다. Codex #1 반영으로 **OpenRouter 단일 공급자**가 채팅+임베딩을 모두 처리하므로 — 기존 custom provider 한 set으로 충분하고 **대규모 리팩토링은 불필요**하다. 남는 작업은 위 차원 검증 조정뿐. (역할별 다중 모델 라우팅은 후속 조각 C.)
 
 ---
 
@@ -135,5 +140,27 @@ LLM 호출은 Convex action 안(=백엔드)에서 일어난다. 백엔드가 클
 - 저장: **기존 `playerDescriptions`/`agentDescriptions` 필드 재사용, 스키마 변경 없음**.
 - 생성 UI: 우측 패널 "에이전트 만들기" 버튼 → 모달.
 - 테스트 에이전트 수: 5~8명(월드당 최대치도 이 수준으로 가드).
-- 좌표 변환: v1에 iso 대비 추상화 없음.
+- 좌표 변환: v1에 iso 대비 추상화 없음. (Codex #4 vs Grok #6 재조정: Grok은 "간단 유틸로 시작"을 제안했으나, 순수 DRY 유틸은 iso 보장을 주지 않으므로 v1 필수 아님 — 기존 산재 `tileDim` 계산을 그대로 두고, iso는 후속에 제대로. Codex 쪽 채택.)
 - 프로젝트명: 지금은 유지(브랜딩은 후속).
+
+---
+
+## 10. Phase 0 선행 조건 (코드 착수 전 필수)
+
+Grok 리뷰의 핵심 결론: **에셋 의존성이 가장 큰 리스크이며, 아래가 준비되지 않으면 코드 작업이 막힌다.** 따라서 구현 계획의 첫 단계(Phase 0)로 분리한다:
+
+1. **우주 아바타 스프라이트 6~8종** — PNG + 대응 `data/spritesheets/*.ts` 프레임 데이터. (4방향 걷기 애니메이션, 32x32, 상업적 사용 가능 라이선스.)
+2. **타일 리스킨 이미지** — 기존 atlas 인덱스 배치를 보존한 우주 톤 리페인트(또는 최소 대체 타일셋) + 별/우주 배경.
+3. **키 준비** — OpenRouter 키로 실제 채팅+임베딩 동작 확인 환경.
+
+이 3가지가 확인되면 이후 코드(테마 전환·createAgent 확장·UI·검증)는 비교적 직진 가능.
+
+---
+
+## 11. 외부 리뷰 반영 요약
+
+- **Codex 리뷰 6건**: 전부 검증·반영 (커밋 `c4908db`). 본문 ⚠️ 표기 참조.
+- **Grok 리뷰**: 검증 후 반영 —
+  - 반영: 에셋 선행조건(§4-2, §10), createAgent 양 경로+character 검증(§4-3), 테마 전환 메커니즘(§3), PlayerDetails plan/identity 노출(§4-5).
+  - 반론/축소: LLM 공급자 완전 분리(§6) — OpenRouter 단일화로 대공사 불필요. 좌표 유틸(§9) — iso 보장 없어 v1 비필수.
+  - 종합 평가: Grok "검토 통과" — 에셋·키만 선결되면 직진 가능.
