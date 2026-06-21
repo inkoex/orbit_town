@@ -2,7 +2,12 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**상태:** 로직/구조 부분 동결(외부 리뷰 3회 반영). **Phase 0(에셋)은 동결 제외** — 실제 에셋·라이선스·아바타 크기는 시각 프로토타입으로 확정한 뒤 이 문서의 Phase 0만 갱신한다.
+**상태:** 동결(외부 리뷰 3회 반영). **아바타 크기 = 32×32 확정**(프로토타입으로 결정 — 가장 쉬운 시작, 추후 iso 전환 가능성이 높아 에셋은 어차피 재활용 불가 → 과투자 금지).
+
+**에셋 전략(중요):** 지금 수집하는 에셋은 **버려질 가능성이 높다**(iso 전환 시 재제작). 따라서:
+- **메커니즘을 먼저 검증**하고 아트는 마지막에 싸게 얹는다 → 구현은 **에셋 비의존 Task(Phase 1 theme.ts·init 분기 일부, Phase 3 검증/핸들러, Phase 4 LLM, Phase 5 UI, Task 3 별배경)부터** 진행.
+- v1 우주 캐릭터는 **별도 고급 아트 없이** 빠른 CC0 32×32 세트 또는 임시로 기존 folk를 placeholder로 써서 파이프라인부터 통과시킨다.
+- 타일 리스킨도 **최소**(어두운 배경 + 가벼운 리컬러)로 — 완성도보다 "깨지지 않고 도는 것" 우선.
 
 **Goal:** AI Town을 우주정거장 테마로 리스킨하고, 사용자가 프리메이드 아바타에 이름·성격을 붙여 커스텀 에이전트를 생성해 월드에서 살아 움직이는 걸 보게 한다.
 
