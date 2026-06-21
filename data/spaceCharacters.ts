@@ -4,6 +4,7 @@ import { data as s3 } from './spritesheets/s3';
 import { data as s4 } from './spritesheets/s4';
 import { data as s5 } from './spritesheets/s5';
 import { data as s6 } from './spritesheets/s6';
+import { SpritesheetData } from './spritesheets/types';
 
 export const spaceDescriptions = [
   {
@@ -49,12 +50,55 @@ export const spaceDescriptions = [
 ];
 
 const spaceTextureUrl = '/ai-town/assets/space-folk.png';
+const frontFrames = ['down', 'down2', 'down3'];
+
+function frontFacingSpritesheet(data: SpritesheetData): SpritesheetData {
+  return {
+    ...data,
+    animations: {
+      left: frontFrames,
+      right: frontFrames,
+      up: frontFrames,
+      down: frontFrames,
+    },
+  };
+}
 
 export const spaceCharacters = [
-  { name: 's1', textureUrl: spaceTextureUrl, spritesheetData: s1, speed: 0.1 },
-  { name: 's2', textureUrl: spaceTextureUrl, spritesheetData: s2, speed: 0.1 },
-  { name: 's3', textureUrl: spaceTextureUrl, spritesheetData: s3, speed: 0.1 },
-  { name: 's4', textureUrl: spaceTextureUrl, spritesheetData: s4, speed: 0.1 },
-  { name: 's5', textureUrl: spaceTextureUrl, spritesheetData: s5, speed: 0.1 },
-  { name: 's6', textureUrl: spaceTextureUrl, spritesheetData: s6, speed: 0.1 },
+  {
+    name: 's1',
+    textureUrl: spaceTextureUrl,
+    spritesheetData: frontFacingSpritesheet(s1),
+    speed: 0.1,
+  },
+  {
+    name: 's2',
+    textureUrl: spaceTextureUrl,
+    spritesheetData: frontFacingSpritesheet(s2),
+    speed: 0.1,
+  },
+  {
+    name: 's3',
+    textureUrl: spaceTextureUrl,
+    spritesheetData: frontFacingSpritesheet(s3),
+    speed: 0.1,
+  },
+  {
+    name: 's4',
+    textureUrl: spaceTextureUrl,
+    spritesheetData: frontFacingSpritesheet(s4),
+    speed: 0.1,
+  },
+  {
+    name: 's5',
+    textureUrl: spaceTextureUrl,
+    spritesheetData: frontFacingSpritesheet(s5),
+    speed: 0.1,
+  },
+  {
+    name: 's6',
+    textureUrl: spaceTextureUrl,
+    spritesheetData: frontFacingSpritesheet(s6),
+    speed: 0.1,
+  },
 ];
