@@ -195,16 +195,23 @@ export const spaceCharacters = [
 
 (주의: `textureUrl`의 `/ai-town/assets/` 접두사는 기존 folk와 동일 규약 — `data/characters.ts`의 기존 `textureUrl` 값을 그대로 따를 것.)
 
-- [ ] **Step 6: characters.ts에서 두 세트 모두 export**
+- [ ] **Step 6: characters.ts에서 registry 병합 (⚠️ Codex 리뷰 #2)**
 
-Modify `data/characters.ts` — 파일 맨 끝에 추가:
+`Player.join`(player.ts:212), `Player.tsx:36`, 커스텀 검증이 모두 단일 `characters` 배열만 참조하므로, **우주 캐릭터를 `characters`에 병합**해야 렌더·검증이 된다.
+
+Modify `data/characters.ts`:
+1. 기존 `export const characters = [ ...f1~f8... ]` 선언을 **`export const folkCharacters = [ ...f1~f8... ]`** 로 이름만 변경.
+2. 파일 맨 끝에 추가:
 
 ```typescript
-export { spaceDescriptions, spaceCharacters } from './spaceCharacters';
-// 기존 export 유지: Descriptions, characters (= folk)
+import { spaceDescriptions, spaceCharacters } from './spaceCharacters';
+export { spaceDescriptions, spaceCharacters };
 export const folkDescriptions = Descriptions;
-export const folkCharacters = characters;
+// 병합 registry — Player.join/Player.tsx가 folk+space 모두 인식
+export const characters = [...folkCharacters, ...spaceCharacters];
 ```
+
+(`Descriptions`는 folk 기본 그대로 유지 — init의 테마 분기에서 folk/space를 선택. `characters`만 병합되어 모든 스프라이트가 등록됨.)
 
 - [ ] **Step 7: 타입체크 + 테스트**
 
@@ -329,7 +336,7 @@ git commit -m "feat: dark space background for the stage"
 **Interfaces:**
 - Produces:
   - `convex/constants.ts` → `export const MAX_AGENTS = 16; export const AGENT_NAME_MAX = 32; export const AGENT_IDENTITY_MAX = 1000; export const AGENT_PLAN_MAX = 500;`
-  - `convex/aiTown/createAgentValidation.ts` → `export interface CustomAgentArgs { name: string; character: string; identity: string; plan: string; }` 와 `export function validateCustomAgent(args: CustomAgentArgs, ctx: { existingNames: string[]; agentCount: number; validCharacters: string[]; }): void` (위반 시 `throw new Error(...)`).
+  - `convex/aiTown/createAgentValidation.ts` → `export interface CustomAgentArgs { name: string; character: string; identity: string; plan: string; }`, `export function validateCustomAgent(args, ctx: { existingNames: string[]; agentCount: number; validCharacters: string[]; }): void` (위반 시 throw), `export function normalizeCustomAgent(args: CustomAgentArgs): CustomAgentArgs` (trim된 값 반환).
 
 - [ ] **Step 1: 상수 추가**
 
@@ -374,6 +381,18 @@ describe('validateCustomAgent', () => {
   test('rejects too-long identity', () => {
     expect(() => validateCustomAgent({ ...base, identity: 'x'.repeat(1001) }, ctx)).toThrow(/identity/i);
   });
+  test('rejects whitespace-only identity', () => {
+    expect(() => validateCustomAgent({ ...base, identity: '   ' }, ctx)).toThrow(/identity/i);
+  });
+});
+
+import { normalizeCustomAgent } from './createAgentValidation';
+
+describe('normalizeCustomAgent', () => {
+  test('trims name, identity, plan', () => {
+    const out = normalizeCustomAgent({ name: '  Zoe  ', character: 's1', identity: '  curious  ', plan: '  go  ' });
+    expect(out).toEqual({ name: 'Zoe', character: 's1', identity: 'curious', plan: 'go' });
+  });
 });
 ```
 
@@ -410,7 +429,8 @@ export function validateCustomAgent(
   if (!ctx.validCharacters.includes(args.character)) {
     throw new Error(`Invalid character: ${args.character}`);
   }
-  if (!args.identity || args.identity.length > AGENT_IDENTITY_MAX) {
+  const identity = args.identity?.trim() ?? '';
+  if (identity.length < 1 || identity.length > AGENT_IDENTITY_MAX) {
     throw new Error(`Agent identity must be 1-${AGENT_IDENTITY_MAX} characters.`);
   }
   if ((args.plan?.length ?? 0) > AGENT_PLAN_MAX) {
@@ -419,6 +439,16 @@ export function validateCustomAgent(
   if (ctx.agentCount >= MAX_AGENTS) {
     throw new Error(`Max agents (${MAX_AGENTS}) reached.`);
   }
+}
+
+// 저장 전 정규화: 핸들러는 이 함수로 trim된 값을 얻어 저장한다.
+export function normalizeCustomAgent(args: CustomAgentArgs): CustomAgentArgs {
+  return {
+    name: args.name.trim(),
+    character: args.character,
+    identity: args.identity.trim(),
+    plan: (args.plan ?? '').trim(),
+  };
 }
 ```
 
@@ -442,8 +472,10 @@ git commit -m "feat: add custom-agent input validation with guards"
 - Modify: `convex/aiTown/agentInputs.ts:119-154`
 
 **Interfaces:**
-- Consumes: `validateCustomAgent`, `CustomAgentArgs` (Task 4); `spaceCharacters`/`folkCharacters` 또는 `characters` (Task 1); `Player.join` (기존).
-- Produces: 확장된 `createAgent` 인풋 — `args: { descriptionIndex?: number, custom?: {name, character, identity, plan} }`. 둘 중 하나 필수. 반환은 기존과 동일 `{ agentId }`.
+- Consumes: `validateCustomAgent`, `normalizeCustomAgent`, `CustomAgentArgs` (Task 4); `characters` (병합 registry, Task 1); `Player.join` (기존).
+- Produces: 확장된 `createAgent` 인풋 — `args: { descriptionIndex?: number, custom?: {name, character, identity, plan} }`. **정확히 하나만** 허용(XOR). 반환은 기존과 동일 `{ agentId }`.
+
+> **idempotency 범위 정정(⚠️ Codex 리뷰 #6)**: 설계의 "생성 중복/연타 방지"는 v1에서 **진짜 idempotency(requestId 기반)가 아니다.** v1 실제 범위 = **서버측 중복 이름 거부 + 클라이언트 `busy` 연타 가드**로 한정한다. requestId 기반 idempotency는 후속(멀티유저 조각 E와 함께)으로 미룸.
 
 - [ ] **Step 1: 현재 핸들러/충돌 검토**
 
@@ -468,20 +500,29 @@ Modify `convex/aiTown/agentInputs.ts` — `createAgent` 블록을 교체:
     },
     handler: (game, now, args) => {
       let name: string, character: string, identity: string, plan: string;
-      if (args.custom) {
+      // ⚠️ Codex 리뷰 #5: 정확히 하나만 허용 (XOR)
+      const hasIndex = args.descriptionIndex !== undefined;
+      const hasCustom = args.custom !== undefined;
+      if (hasIndex === hasCustom) {
+        throw new Error('createAgent requires exactly one of descriptionIndex or custom');
+      }
+      if (hasCustom) {
         const existingNames = [...game.playerDescriptions.values()].map((d) => d.name);
         const validCharacters = characters.map((c) => c.name);
-        validateCustomAgent(args.custom, {
+        const normalized = normalizeCustomAgent(args.custom!);
+        validateCustomAgent(normalized, {
           existingNames,
           agentCount: game.world.agents.size,
           validCharacters,
         });
-        ({ name, character, identity, plan } = args.custom);
-      } else if (args.descriptionIndex !== undefined) {
-        const description = Descriptions[args.descriptionIndex];
-        ({ name, character, identity, plan } = description);
+        ({ name, character, identity, plan } = normalized);
       } else {
-        throw new Error('createAgent requires descriptionIndex or custom');
+        const idx = args.descriptionIndex!;
+        if (!Number.isInteger(idx) || idx < 0 || idx >= Descriptions.length) {
+          throw new Error(`Invalid descriptionIndex: ${idx}`);
+        }
+        const description = Descriptions[idx];
+        ({ name, character, identity, plan } = description);
       }
       const playerId = Player.join(game, now, name, character, identity);
       const agentId = game.allocId('agents');
@@ -511,7 +552,7 @@ Modify `convex/aiTown/agentInputs.ts` — `createAgent` 블록을 교체:
 
 ```typescript
 import { characters } from '../../data/characters';
-import { validateCustomAgent } from './createAgentValidation';
+import { validateCustomAgent, normalizeCustomAgent } from './createAgentValidation';
 ```
 
 (`Descriptions`는 이미 import되어 있음 — index 경로 유지용. `characters`가 folk/space 중 무엇을 가리키는지는 `data/characters.ts`의 활성 export를 따른다. v1에서 커스텀 character 화이트리스트는 활성 세트 기준.)
@@ -550,37 +591,41 @@ git commit -m "feat: support custom agent creation in createAgent input"
 **Interfaces:**
 - Produces: 선택한 OpenRouter 임베딩 모델의 출력 차원에 맞춘 `EMBEDDING_DIMENSION`과, custom provider에서 그 차원을 허용하는 검증.
 
-- [ ] **Step 1: 사용할 OpenRouter 임베딩 모델·차원 결정**
+- [ ] **Step 1: 임베딩 모델·차원 확정 (⚠️ Codex 리뷰 #4 — 미정 금지)**
 
-OpenRouter 모델 목록에서 임베딩 모델 하나 선택(예: OpenAI 호환 `text-embedding-3-small` 계열, 1536차원). 차원을 확정한다.
+OpenRouter 임베딩 모델을 **확정**한다: `openai/text-embedding-3-small`, **출력 차원 1536**. 채팅 모델도 확정(테스트용 무료 모델, 예: `meta-llama/llama-3.3-70b-instruct:free` — OpenRouter 모델 페이지에서 현재 사용 가능한 `:free` 모델로 최종 확인).
 
 - [ ] **Step 2: EMBEDDING_DIMENSION 및 검증 조정**
 
-`convex/util/llm.ts` 상단의 `EMBEDDING_DIMENSION`을 선택 모델 차원(예: 1536)으로 설정. custom provider 경로(`LLM_API_URL` 설정 시)에서 이 차원이 에러 없이 통과하도록 `validateEmbeddingDimension`/`detectEmbeddingDimension` 분기를 확인·수정한다. (이미 `OPENAI_EMBEDDING_DIMENSION = 1536` 케이스가 있으므로 1536 선택 시 추가 변경 최소.)
+`convex/util/llm.ts` 상단 `EMBEDDING_DIMENSION = 1536`(이미 `OPENAI_EMBEDDING_DIMENSION = 1536`). custom provider 경로에서 1536이 검증을 통과하는지 확인(기존 OpenAI 케이스 재사용 가능, 추가 변경 최소).
 
-- [ ] **Step 3: 환경변수 문서화**
+- [ ] **Step 3: base URL 수정 (⚠️ Codex 리뷰 #1 — 치명적)**
 
-`.env.local` 또는 README에 기록(커밋 금지인 키 제외):
+`convex/util/llm.ts`는 `config.url`에 `/v1/chat/completions`(150행)와 `/v1/embeddings`(220행)를 **덧붙인다.** 따라서 base URL에 `/v1`을 넣으면 `/api/v1/v1/...`로 깨진다. **올바른 값은 `https://openrouter.ai/api`** (코드가 `/v1/...`을 붙여 `https://openrouter.ai/api/v1/chat/completions`가 됨).
 
-```
-LLM_PROVIDER=custom
-LLM_API_URL=https://openrouter.ai/api/v1
-LLM_MODEL=<openrouter-chat-model>
-LLM_EMBEDDING_MODEL=<openrouter-embedding-model>
-# OPENROUTER key: npx convex env set LLM_API_KEY <key>
-```
+- [ ] **Step 4: Convex 환경변수 설정 (⚠️ Codex 리뷰 #4 — 클라우드는 env set 필수)**
 
-(실제 키 설정 명령은 `npx convex env set`로, 저장소엔 키를 넣지 않는다.)
-
-- [ ] **Step 4: 타입체크 + 임베딩 동작 확인**
-
-Run: `npx tsc --noEmit` 그리고 `npm run dev` 후 에이전트가 대화하며 메모리 임베딩 호출이 에러 없이 도는지 Convex 로그 확인.
-Expected: 차원 불일치 에러 없음, 임베딩 생성 성공.
-
-- [ ] **Step 5: Commit**
+클라우드 Convex action은 `.env.local`을 못 읽는다. **모든 LLM_* 변수를 `npx convex env set`으로** 설정:
 
 ```bash
-git add convex/util/llm.ts
+npx convex env set LLM_PROVIDER custom
+npx convex env set LLM_API_URL https://openrouter.ai/api
+npx convex env set LLM_MODEL meta-llama/llama-3.3-70b-instruct:free
+npx convex env set LLM_EMBEDDING_MODEL openai/text-embedding-3-small
+npx convex env set LLM_API_KEY <openrouter-key>   # 키는 저장소에 넣지 않음
+```
+
+README의 LLM 설정 섹션에도 이 OpenRouter 조합을 문서화(키 값 제외).
+
+- [ ] **Step 5: 타입체크 + 임베딩/채팅 동작 확인**
+
+Run: `npx tsc --noEmit` 그리고 `npm run dev` 후 에이전트 대화 + 메모리 임베딩 호출이 Convex 로그에서 200으로 도는지 확인(404/더블슬래시 없음).
+Expected: 차원 불일치·URL 에러 없음, 채팅·임베딩 성공.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add convex/util/llm.ts README.md
 git commit -m "chore: configure OpenRouter chat+embedding via custom provider"
 ```
 
@@ -595,10 +640,16 @@ git commit -m "chore: configure OpenRouter chat+embedding via custom provider"
 - Modify: `src/components/Game.tsx:68-82`
 
 **Interfaces:**
-- Consumes: `useSendInput(engineId, 'createAgent')` (확장된 custom 인자, Task 5); 활성 `characters` 세트(아바타 그리드용).
-- Produces: `src/components/AgentCreator.tsx` → `export function AgentCreator({ engineId }: { engineId: Id<'engines'> })` — 버튼 + 모달. 모달 폼: 아바타 선택(character 이름), name, identity, plan. 제출 시 `createAgent({ custom: {...} })`.
+- Consumes: `useSendInput(engineId, 'createAgent')` (확장된 custom 인자, Task 5); `spaceCharacters`(피커에 노출할 우주 아바타, Task 1).
+- Produces: `src/components/AgentCreator.tsx` → `export function AgentCreator({ engineId }: { engineId: Id<'engines'> })` — 버튼 + 모달. 모달 폼: **실제 스프라이트 미리보기** 아바타 그리드, name, identity, plan. 제출 시 `createAgent({ custom: {...} })`. 내부 `AvatarPreview`가 첫 걷기 프레임을 잘라 표시.
 
-- [ ] **Step 1: AgentCreator 컴포넌트 작성**
+- [ ] **Step 1: 스프라이트시트 프레임 좌표 형식 확인 (⚠️ Codex 리뷰 #3)**
+
+`data/spritesheets/types.ts`와 `f1.ts`를 열어 `spritesheetData.frames`의 각 항목 형식(`{ frame: { x, y, w, h } }` 표준 형태인지)을 확인한다. `AvatarPreview`가 이 좌표로 background-position 크롭을 한다.
+
+- [ ] **Step 2: AvatarPreview + AgentCreator 컴포넌트 작성**
+
+실제 이미지를 보여주는 비주얼 피커가 핵심 감성 요소이므로 v1 필수.
 
 Create `src/components/AgentCreator.tsx`:
 
@@ -606,12 +657,35 @@ Create `src/components/AgentCreator.tsx`:
 import { useState } from 'react';
 import { Id } from '../../convex/_generated/dataModel';
 import { useSendInput } from '../hooks/sendInput';
-import { characters } from '../../data/characters';
+import { spaceCharacters } from '../../data/characters';
+
+// 첫 걷기 프레임을 잘라 보여주는 실제 아바타 미리보기 (정수 배율 크롭)
+function AvatarPreview({ characterName, scale = 2 }: { characterName: string; scale?: number }) {
+  const c = spaceCharacters.find((sc) => sc.name === characterName);
+  if (!c) return null;
+  const sheet = c.spritesheetData as any;
+  const frames = sheet.frames as Record<string, { frame: { x: number; y: number; w: number; h: number } }>;
+  const first = Object.values(frames)[0]?.frame;
+  const sheetSize = sheet.meta?.size as { w: number; h: number } | undefined;
+  if (!first || !sheetSize) return null;
+  return (
+    <div
+      style={{
+        width: first.w * scale,
+        height: first.h * scale,
+        backgroundImage: `url(${c.textureUrl})`,
+        backgroundPosition: `-${first.x * scale}px -${first.y * scale}px`,
+        backgroundSize: `${sheetSize.w * scale}px ${sheetSize.h * scale}px`,
+        imageRendering: 'pixelated',
+      }}
+    />
+  );
+}
 
 export function AgentCreator({ engineId }: { engineId: Id<'engines'> }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
-  const [character, setCharacter] = useState(characters[0]?.name ?? '');
+  const [character, setCharacter] = useState(spaceCharacters[0]?.name ?? '');
   const [identity, setIdentity] = useState('');
   const [plan, setPlan] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -643,13 +717,13 @@ export function AgentCreator({ engineId }: { engineId: Id<'engines'> }) {
             <h2 className="text-lg mb-3">새 에이전트</h2>
             <label className="block text-sm mb-1">아바타</label>
             <div className="grid grid-cols-4 gap-2 mb-3">
-              {characters.map((c) => (
+              {spaceCharacters.map((c) => (
                 <button
                   key={c.name}
                   onClick={() => setCharacter(c.name)}
-                  className={`border-2 p-1 ${character === c.name ? 'border-yellow-400' : 'border-transparent'}`}
+                  className={`border-2 p-1 flex items-center justify-center ${character === c.name ? 'border-yellow-400' : 'border-transparent'}`}
                 >
-                  {c.name}
+                  <AvatarPreview characterName={c.name} />
                 </button>
               ))}
             </div>
@@ -673,7 +747,7 @@ export function AgentCreator({ engineId }: { engineId: Id<'engines'> }) {
 
 (주: 아바타 그리드는 v1에서 character 이름 버튼으로 시작. 시간 여유 시 `<Character>` 컴포넌트로 실제 스프라이트 미리보기로 개선 — 범위 외 권장.)
 
-- [ ] **Step 2: Game.tsx 우측 패널에 삽입**
+- [ ] **Step 3: Game.tsx 우측 패널에 삽입**
 
 Modify `src/components/Game.tsx` — 우측 패널 `<PlayerDetails .../>` 바로 위에 추가:
 
@@ -688,17 +762,17 @@ Modify `src/components/Game.tsx` — 우측 패널 `<PlayerDetails .../>` 바로
 import { AgentCreator } from './AgentCreator';
 ```
 
-- [ ] **Step 3: 타입체크**
+- [ ] **Step 4: 타입체크**
 
 Run: `npx tsc --noEmit`
 Expected: 에러 없음. (`createAgent`의 custom 인자가 Task 5의 인풋 타입과 일치.)
 
-- [ ] **Step 4: 검증 — UI로 생성**
+- [ ] **Step 5: 검증 — UI로 생성**
 
-Run: `npm run dev` → 우측 패널의 "에이전트 만들기" 클릭 → 아바타 선택 + 이름·성격·plan 입력 → 생성 → 월드에 에이전트 등장·이동·대화. 잘못된 입력(빈 이름/중복) 시 에러 메시지.
-Expected: 정상 생성 및 서버 거부 동작.
+Run: `npm run dev` → 우측 패널의 "에이전트 만들기" 클릭 → **아바타 미리보기 그리드**에서 선택 + 이름·성격·plan 입력 → 생성 → 월드에 에이전트 등장·이동·대화. 잘못된 입력(빈 이름/중복) 시 에러 메시지.
+Expected: 아바타가 실제 스프라이트로 보이고, 정상 생성 및 서버 거부 동작.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add src/components/AgentCreator.tsx src/components/Game.tsx
@@ -783,10 +857,22 @@ UI로 커스텀 에이전트 2~3명 생성 → 이동·성격대로 대화 확�
 
 `npx convex run testing:wipeAllTables` → init → 기본 에이전트로 정상 재초기화(커스텀은 사라짐 — 정상).
 
-- [ ] **Step 8: 단위 테스트 전체 통과**
+- [ ] **Step 8: 전체 게이트 통과 (⚠️ Codex 리뷰 #7)**
 
-Run: `npm test`
-Expected: 기존 + 신규(theme, createAgentValidation) 테스트 모두 PASS.
+Run:
+```bash
+npm test
+npm run lint
+npm run build
+```
+Expected: 단위 테스트(기존 + theme, createAgentValidation) 모두 PASS, lint 무경고, build 성공.
+
+- [ ] **Step 9: 시각 회귀 — Playwright 스크린샷 + 캔버스 비어있지 않음 확인**
+
+시각 작업이므로 Playwright(MCP)로 **데스크톱·모바일 뷰포트** 스크린샷을 캡처하고:
+- 우주 배경 + 타일맵 + 에이전트가 보이는지 육안 확인,
+- **Pixi `<canvas>`가 비어있지 않은지** 검증(캔버스 픽셀이 전부 단색/투명이 아님). 예: 캔버스 toDataURL 길이/픽셀 분산 체크 또는 스크린샷 내 비배경 픽셀 존재 확인.
+Expected: 두 뷰포트 모두 우주 월드가 렌더되고 캔버스가 비어있지 않음.
 
 ---
 

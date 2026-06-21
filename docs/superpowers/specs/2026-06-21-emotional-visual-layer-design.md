@@ -65,7 +65,7 @@
    - ⚠️ **수정(Codex 리뷰 #5)**: 데이터 모델 확장 **불필요**. 필요한 필드가 이미 존재한다 — `playerDescriptions`{name, description, character}, `agentDescriptions`{identity, plan}. createAgent가 UI 입력을 이 **기존 필드에 매핑**(name·character→playerDescription, identity·plan→agentDescription)할 뿐, 새 테이블·스키마 변경 없음.
 5. **PlayerDetails**: 클릭 시 커스텀 정보 표시. (Grok 리뷰 #6: 현재 `PlayerDetails.tsx:226`은 `playerDescription.description`만 노출 → 에이전트의 `identity`/`plan`(`agentDescriptions`에 저장)도 함께 보이도록 추가.)
 6. **서버측 생성 가드 (보안)**:
-   - ⚠️ **추가(Codex 리뷰 #2)**: `sendWorldInput`은 인증이 꺼져 있고 `args: v.any()`로 임의 입력을 받는다. 공개 시 무제한 에이전트 생성으로 비용·월드 상태 소진 위험. v1에서 인증은 제외하되 **createAgent 핸들러에 서버측 제한**을 둔다: ①월드당 최대 에이전트 수 ②name/identity/plan 길이 검증 ③허용된 character ID 화이트리스트 ④중복 이름 정책 ⑤생성 중복/연타 요청 방지(idempotency).
+   - ⚠️ **추가(Codex 리뷰 #2)**: `sendWorldInput`은 인증이 꺼져 있고 `args: v.any()`로 임의 입력을 받는다. 공개 시 무제한 에이전트 생성으로 비용·월드 상태 소진 위험. v1에서 인증은 제외하되 **createAgent 핸들러에 서버측 제한**을 둔다: ①월드당 최대 에이전트 수 ②name/identity/plan 길이 검증 ③허용된 character ID 화이트리스트 ④중복 이름 정책 ⑤클라이언트 연타 방지(`busy`). (⚠️ Codex 리뷰 #6: 진짜 requestId 기반 idempotency는 v1 범위 아님 — 멀티유저 조각 E와 함께 후속.)
 
 ### 제외 (후속 조각)
 - 온보딩 대화 → AI 팀 구성 (B)
@@ -114,7 +114,7 @@ LLM 호출은 Convex action 안(=백엔드)에서 일어난다. 백엔드가 클
 
 ## 7. 에러 처리 / 보안
 
-- **서버측 createAgent 가드**(§4-6 참고, 보안 필수): 월드당 최대 에이전트 수, name/identity/plan 정확한 길이, 허용 character ID 화이트리스트, 중복 이름 정책, 생성 연타/중복 idempotency.
+- **서버측 createAgent 가드**(§4-6 참고, 보안 필수): 월드당 최대 에이전트 수, name/identity/plan 정확한 길이, 허용 character ID 화이트리스트, 중복 이름 정책, 클라이언트 연타 방지(`busy`). (requestId idempotency는 후속.)
 - 클라이언트 입력 검증(UX용): 이름 필수, 아바타 미선택 시 기본값. **단 서버측 검증이 신뢰 경계** — 클라 검증에 의존하지 않음.
 - OpenRouter 무료 모델 레이트리밋/실패 시 graceful 처리(기존 llm.ts 재시도 패턴 활용).
 - 임베딩 차원 불일치 방지(설정 검증).
