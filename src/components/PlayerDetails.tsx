@@ -47,6 +47,9 @@ export default function PlayerDetails({
   );
 
   const playerDescription = playerId && game.playerDescriptions.get(playerId);
+  const agent =
+    playerId && [...game.world.agents.values()].find((candidate) => candidate.playerId === playerId);
+  const agentDescription = agent ? game.agentDescriptions.get(agent.id) : undefined;
 
   const startConversation = useSendInput(engineId, 'startConversation');
   const acceptInvite = useSendInput(engineId, 'acceptInvite');
@@ -233,6 +236,18 @@ export default function PlayerDetails({
           )}
         </p>
       </div>
+      {agentDescription && (
+        <>
+          <div className="mt-2">
+            <span className="uppercase text-xs">Identity</span>
+            <p>{agentDescription.identity}</p>
+          </div>
+          <div className="mt-2">
+            <span className="uppercase text-xs">Plan</span>
+            <p>{agentDescription.plan}</p>
+          </div>
+        </>
+      )}
       {!isMe && playerConversation && playerStatus?.kind === 'participating' && (
         <Messages
           worldId={worldId}
