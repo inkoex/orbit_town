@@ -1,30 +1,26 @@
 import { useState } from 'react';
 import { Id } from '../../convex/_generated/dataModel';
 import { useSendInput } from '../hooks/sendInput';
-import { characters, creatableCharacters } from '../../data/characters';
+import { creatableCharacters } from '../../data/characters';
 import { themeFromTileSetUrl } from '../../convex/util/theme';
 import { ServerGame } from '../hooks/serverGame';
+import { getAvatarPreviewLayout } from './avatarPreview';
 
 function AvatarPreview({ characterName, scale = 2 }: { characterName: string; scale?: number }) {
-  const character = characters.find((candidate) => candidate.name === characterName);
-  if (!character) return null;
-  const first = Object.values(character.spritesheetData.frames)[0]?.frame;
-  if (!first) return null;
+  const layout = getAvatarPreviewLayout(characterName, scale);
+  if (!layout) return null;
   return (
-    <div style={{ width: first.w * scale, height: first.h * scale, overflow: 'hidden' }}>
-      <div
-        style={{
-          width: first.w,
-          height: first.h,
-          backgroundImage: `url(${character.textureUrl})`,
-          backgroundPosition: `-${first.x}px -${first.y}px`,
-          backgroundRepeat: 'no-repeat',
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
-          imageRendering: 'pixelated',
-        }}
-      />
-    </div>
+    <div
+      style={{
+        width: layout.width,
+        height: layout.height,
+        backgroundImage: `url(${layout.textureUrl})`,
+        backgroundPosition: layout.backgroundPosition,
+        backgroundSize: layout.backgroundSize,
+        backgroundRepeat: 'no-repeat',
+        imageRendering: 'pixelated',
+      }}
+    />
   );
 }
 
