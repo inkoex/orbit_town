@@ -76,3 +76,8 @@ export const ENGINE_ACTION_DURATION = 30000;
 export const MAX_PATHFINDS_PER_STEP = 16;
 
 export const DEFAULT_NAME = 'Me';
+
+export const MAX_AGENTS = 8;
+export const AGENT_NAME_MAX = 32;
+export const AGENT_IDENTITY_MAX = 1000;
+export const AGENT_PLAN_MAX = 500;
