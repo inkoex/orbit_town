@@ -65,9 +65,14 @@
 
 CC0/상업적 사용 가능한 32x32 우주(우주비행사 등) 캐릭터 스프라이트 6~8종과, 기존 타일셋과 호환되는 우주 타일 아트를 확보한다. 출처 후보: OpenGameArt(CC0 필터), itch.io(라이선스 확인), Kenney.nl(CC0). 캐릭터는 4방향(상하좌우) 걷기 프레임을 포함해야 한다.
 
-- [ ] **Step 3: 타일셋 인덱스 보존 확인**
+- [ ] **Step 3: 타일셋 atlas 정확 명세 (⚠️ Codex 3차 리뷰 #1)**
 
-`space-tiles.png`는 기존 타일셋(`public/assets/gentle-obj.png` 등, `data/gentle.js`의 `tilesetpath`가 가리키는 파일)과 **같은 가로/세로 타일 수·같은 타일 크기**여야 한다. 즉 동일 인덱스 위치에 대응하는 우주 타일이 그려져야 맵이 깨지지 않는다. (다른 배치를 쓰려면 이 계획 범위를 벗어남.)
+`data/gentle.js` 확인 결과 기존 타일셋은 다음과 같다(이 수치를 **정확히** 맞춰야 인덱스가 보존된다):
+- 파일: `/ai-town/assets/gentle-obj.png`
+- 크기: **1440 × 1024 px**, 타일 **32 × 32 px** → **45열 × 32행 = 1440 타일**
+- 각 인덱스 `tiles[x + y*45]`가 atlas의 (x*32, y*32) 위치를 가리킴(`PixiStaticMap.tsx`).
+
+따라서 `space-tiles.png`는 **동일한 1440×1024 / 32px 그리드**에서, **각 셀을 우주 톤으로 리페인트**해야 한다. 일반 우주 타일셋을 그대로 내려받으면 배치가 달라 맵이 깨진다 → **gentle-obj.png를 베이스로 셀 단위 리컬러/리드로우**가 현실적 방법(이미지 편집 또는 도트 작업). 실제 사용 인덱스만 칠해도 됨(`data/gentle.js`의 bgtiles/objmap에 등장하는 인덱스 집합).
 
 - [ ] **Step 4: 스프라이트시트 데이터 작성**
 
@@ -118,7 +123,7 @@ git commit -m "assets: add space-themed sprites and tileset (Phase 0)"
 - Produces:
   - `data/spaceCharacters.ts` → `export const spaceDescriptions: Array<{name, character, identity, plan}>`, `export const spaceCharacters: Array<{name, textureUrl, spritesheetData, speed}>`.
   - `data/characters.ts` → 기존 `export const Descriptions`, `export const characters` 유지 + `export const folkDescriptions`, `export const folkCharacters`(별칭).
-  - `convex/util/theme.ts` → `export type WorldTheme = 'folk' | 'space'; export function resolveTheme(raw: string | undefined): WorldTheme`.
+  - `convex/util/theme.ts` → `export type WorldTheme = 'folk' | 'space'; export function resolveTheme(raw: string | undefined): WorldTheme; export function themeFromTileSetUrl(url: string): WorldTheme`.
 
 - [ ] **Step 1: 테마 선택기 실패 테스트 작성**
 
@@ -138,6 +143,17 @@ describe('resolveTheme', () => {
     expect(resolveTheme('banana')).toBe('folk');
   });
 });
+
+import { themeFromTileSetUrl } from './theme';
+
+describe('themeFromTileSetUrl', () => {
+  test('space when url has space-tiles', () => {
+    expect(themeFromTileSetUrl('/ai-town/assets/space-tiles.png')).toBe('space');
+  });
+  test('folk otherwise', () => {
+    expect(themeFromTileSetUrl('/ai-town/assets/gentle-obj.png')).toBe('folk');
+  });
+});
 ```
 
 - [ ] **Step 2: 테스트 실패 확인**
@@ -152,15 +168,22 @@ Create `convex/util/theme.ts`:
 ```typescript
 export type WorldTheme = 'folk' | 'space';
 
+// init 시드 시점: 환경변수로 어떤 맵/Descriptions를 만들지 결정
 export function resolveTheme(raw: string | undefined): WorldTheme {
   return raw === 'space' ? 'space' : 'folk';
+}
+
+// 런타임 단일 기준(⚠️ Codex 3차 리뷰 #2): 이미 영속된 worldMap.tileSetUrl로 테마 판별.
+// 서버(createAgent 핸들러)·클라이언트(AgentCreator)·world.ts join이 모두 이걸 써서 일관성 보장.
+export function themeFromTileSetUrl(url: string): WorldTheme {
+  return url.includes('space-tiles') ? 'space' : 'folk';
 }
 ```
 
 - [ ] **Step 4: 테스트 통과 확인**
 
 Run: `npm test -- theme.test`
-Expected: PASS (3 tests).
+Expected: PASS (5 tests — resolveTheme 3 + themeFromTileSetUrl 2).
 
 - [ ] **Step 5: 우주 캐릭터 정의 작성**
 
@@ -313,37 +336,52 @@ git commit -m "feat: add space map and WORLD_THEME switch in init"
 
 ## Phase 2 — 우주 배경 연출
 
-### Task 3: 검은 우주 + 별 배경 추가
+### Task 3: 검은 우주 + 별 배경 (필수 — ⚠️ Codex 3차 리뷰 #4)
+
+설계 §4 IN #1이 "검은 우주 + 별 배경"을 **필수**로 규정하므로, 별 배경은 선택이 아니라 필수로 구현하고 파일도 확정한다.
 
 **Files:**
-- Modify: `src/components/PixiGame.tsx` 또는 `src/components/Game.tsx` (스테이지 배경)
+- Modify: `src/components/Game.tsx` (Stage 래퍼 div에 별 배경 CSS + Stage 투명 배경)
 
 **Interfaces:**
-- Consumes: 기존 PixiJS Stage/Viewport.
-- Produces: 맵 뒤에 깔리는 검은 우주 + 별 배경(시각 전용, 게임 로직 무관).
+- Consumes: 기존 PixiJS Stage.
+- Produces: 캔버스 뒤에 깔리는 검은 우주 + 별 배경(CSS, 게임 로직 무관). 맵 주변 여백에 별이 보임.
 
-- [ ] **Step 1: 현재 Stage 배경색/레이어 확인**
+- [ ] **Step 1: 현재 Stage 설정 확인**
 
-`src/components/Game.tsx`의 `<Stage>` 설정과 `src/components/PixiGame.tsx`의 컨테이너 구조를 확인. 배경색 옵션(`options={{ backgroundColor }}`) 위치를 찾는다.
+`src/components/Game.tsx`의 `<Stage>`와 이를 감싸는 div를 확인. Stage의 `options`(backgroundColor/backgroundAlpha) 위치를 찾는다.
 
-- [ ] **Step 2: 배경을 우주 톤으로**
+- [ ] **Step 2: Stage 배경 투명 + 래퍼에 별 CSS**
 
-`<Stage>`의 backgroundColor를 검은/짙은 남색(예: `0x05060f`)으로 설정. (우주 모드에서만 적용하려면 `WORLD_THEME`을 프론트에 노출하는 대신, v1은 단순히 어두운 배경으로 통일해도 무방 — folk 맵도 어두운 우주 배경 위에 떠 보이는 정도는 허용.)
+`<Stage options={{ backgroundAlpha: 0 }} ...>` 로 캔버스 배경을 투명화하고, Stage를 감싸는 div에 검은 우주 + 별 배경 CSS를 적용:
 
-- [ ] **Step 3: 별 레이어(선택) 추가**
+```tsx
+<div
+  style={{
+    background:
+      'radial-gradient(1.5px 1.5px at 20% 30%, #fff, transparent),' +
+      'radial-gradient(1.5px 1.5px at 70% 60%, #cfe6ff, transparent),' +
+      'radial-gradient(1.5px 1.5px at 45% 80%, #fff, transparent),' +
+      'radial-gradient(1.5px 1.5px at 85% 25%, #9bd, transparent),' +
+      '#05060f',
+  }}
+>
+  {/* 기존 <Stage> ... */}
+</div>
+```
 
-맵 컨테이너 뒤에 별 텍스처 또는 반복 점 스프라이트를 낮은 알파로 추가(선택적, 시간 여유 시). 없으면 배경색만으로도 v1 충족.
+(별은 CSS radial-gradient로 그려 에셋 의존 없음. 맵 캔버스가 투명이라 여백에 별이 보인다.)
 
-- [ ] **Step 4: 검증 — 시각 확인**
+- [ ] **Step 3: 검증 — 시각 확인**
 
-Run: `npm run dev` → 우주 배경이 맵 주위로 보이고 맵 렌더가 깨지지 않음(스크린샷 저장).
-Expected: 검은 우주 배경 위에 정거장 타일맵.
+Run: `npm run dev` → 검은 우주 + 별이 보이고 맵 렌더가 깨지지 않음(스크린샷 저장).
+Expected: 별이 있는 검은 우주 배경 위에 정거장 타일맵.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add src/components/Game.tsx src/components/PixiGame.tsx
-git commit -m "feat: dark space background for the stage"
+git add src/components/Game.tsx
+git commit -m "feat: required starfield space background behind the stage"
 ```
 
 ---
@@ -360,14 +398,14 @@ git commit -m "feat: dark space background for the stage"
 **Interfaces:**
 - Produces:
   - `convex/constants.ts` → `export const MAX_AGENTS = 16; export const AGENT_NAME_MAX = 32; export const AGENT_IDENTITY_MAX = 1000; export const AGENT_PLAN_MAX = 500;`
-  - `convex/aiTown/createAgentValidation.ts` → `export interface CustomAgentArgs { name: string; character: string; identity: string; plan: string; }`, `export function validateCustomAgent(args, ctx: { existingNames: string[]; agentCount: number; validCharacters: string[]; }): void` (위반 시 throw), `export function normalizeCustomAgent(args: CustomAgentArgs): CustomAgentArgs` (trim된 값 반환).
+  - `convex/aiTown/createAgentValidation.ts` → `CustomAgentArgs`, `validateCustomAgent(args, ctx): void`(위반 시 throw), `normalizeCustomAgent(args): CustomAgentArgs`(trim), `CreateAgentArgs { descriptionIndex?: number; custom?: CustomAgentArgs }`, `resolveAgentSpec(args: CreateAgentArgs, ctx: { descriptions: CustomAgentArgs[]; existingNames: string[]; agentCount: number; validCharacters: string[] }): CustomAgentArgs`(XOR+index검사+custom검증·정규화 → 저장 spec).
 
 - [ ] **Step 1: 상수 추가**
 
 Modify `convex/constants.ts` — 파일 끝에 추가:
 
 ```typescript
-export const MAX_AGENTS = 16;
+export const MAX_AGENTS = 8; // 설계 의도(5~8명)에 맞춤 (⚠️ Codex 3차 리뷰 #7)
 export const AGENT_NAME_MAX = 32;
 export const AGENT_IDENTITY_MAX = 1000;
 export const AGENT_PLAN_MAX = 500;
@@ -400,7 +438,7 @@ describe('validateCustomAgent', () => {
     expect(() => validateCustomAgent({ ...base, character: 'zzz' }, ctx)).toThrow(/character/i);
   });
   test('rejects when at max agents', () => {
-    expect(() => validateCustomAgent(base, { ...ctx, agentCount: 16 })).toThrow(/max/i);
+    expect(() => validateCustomAgent(base, { ...ctx, agentCount: 8 })).toThrow(/max/i);
   });
   test('rejects too-long identity', () => {
     expect(() => validateCustomAgent({ ...base, identity: 'x'.repeat(1001) }, ctx)).toThrow(/identity/i);
@@ -410,12 +448,42 @@ describe('validateCustomAgent', () => {
   });
 });
 
-import { normalizeCustomAgent } from './createAgentValidation';
+import { normalizeCustomAgent, resolveAgentSpec } from './createAgentValidation';
 
 describe('normalizeCustomAgent', () => {
   test('trims name, identity, plan', () => {
     const out = normalizeCustomAgent({ name: '  Zoe  ', character: 's1', identity: '  curious  ', plan: '  go  ' });
     expect(out).toEqual({ name: 'Zoe', character: 's1', identity: 'curious', plan: 'go' });
+  });
+});
+
+describe('resolveAgentSpec', () => {
+  const rctx = {
+    descriptions: [{ name: 'Nova', character: 's1', identity: 'curious', plan: 'explore' }],
+    existingNames: [] as string[],
+    agentCount: 0,
+    validCharacters: ['s1', 's2'],
+  };
+  test('rejects when both index and custom present', () => {
+    expect(() => resolveAgentSpec({ descriptionIndex: 0, custom: base }, rctx)).toThrow(/exactly one/i);
+  });
+  test('rejects when neither present', () => {
+    expect(() => resolveAgentSpec({}, rctx)).toThrow(/exactly one/i);
+  });
+  test('rejects out-of-range index', () => {
+    expect(() => resolveAgentSpec({ descriptionIndex: 5 }, rctx)).toThrow(/descriptionIndex/i);
+  });
+  test('rejects non-integer index', () => {
+    expect(() => resolveAgentSpec({ descriptionIndex: 1.5 }, rctx)).toThrow(/descriptionIndex/i);
+  });
+  test('resolves valid index to description', () => {
+    expect(resolveAgentSpec({ descriptionIndex: 0 }, rctx)).toEqual(rctx.descriptions[0]);
+  });
+  test('resolves and normalizes valid custom', () => {
+    expect(resolveAgentSpec({ custom: { ...base, name: '  Zoe  ' } }, rctx)).toEqual({ ...base, name: 'Zoe' });
+  });
+  test('custom path enforces validation (unknown character)', () => {
+    expect(() => resolveAgentSpec({ custom: { ...base, character: 'zzz' } }, rctx)).toThrow(/character/i);
   });
 });
 ```
@@ -474,12 +542,49 @@ export function normalizeCustomAgent(args: CustomAgentArgs): CustomAgentArgs {
     plan: (args.plan ?? '').trim(),
   };
 }
+
+// 핸들러의 결정 로직 전체를 순수 함수로 추출(⚠️ Codex 3차 리뷰 #5 — 자동 테스트 가능).
+// XOR 강제 + index 범위/정수 검사 + custom 정규화·검증 → 저장할 spec 반환.
+export interface CreateAgentArgs {
+  descriptionIndex?: number;
+  custom?: CustomAgentArgs;
+}
+export function resolveAgentSpec(
+  args: CreateAgentArgs,
+  ctx: {
+    descriptions: CustomAgentArgs[];
+    existingNames: string[];
+    agentCount: number;
+    validCharacters: string[];
+  },
+): CustomAgentArgs {
+  const hasIndex = args.descriptionIndex !== undefined;
+  const hasCustom = args.custom !== undefined;
+  if (hasIndex === hasCustom) {
+    throw new Error('createAgent requires exactly one of descriptionIndex or custom');
+  }
+  if (hasCustom) {
+    const normalized = normalizeCustomAgent(args.custom!);
+    validateCustomAgent(normalized, {
+      existingNames: ctx.existingNames,
+      agentCount: ctx.agentCount,
+      validCharacters: ctx.validCharacters,
+    });
+    return normalized;
+  }
+  const idx = args.descriptionIndex!;
+  if (!Number.isInteger(idx) || idx < 0 || idx >= ctx.descriptions.length) {
+    throw new Error(`Invalid descriptionIndex: ${idx}`);
+  }
+  const d = ctx.descriptions[idx];
+  return { name: d.name, character: d.character, identity: d.identity, plan: d.plan };
+}
 ```
 
 - [ ] **Step 5: 테스트 통과 확인**
 
 Run: `npm test -- createAgentValidation`
-Expected: PASS (7 tests).
+Expected: PASS (16 tests — validateCustomAgent 8 + normalizeCustomAgent 1 + resolveAgentSpec 7).
 
 - [ ] **Step 6: Commit**
 
@@ -496,7 +601,7 @@ git commit -m "feat: add custom-agent input validation with guards"
 - Modify: `convex/aiTown/agentInputs.ts:119-154`
 
 **Interfaces:**
-- Consumes: `validateCustomAgent`, `normalizeCustomAgent`, `CustomAgentArgs` (Task 4); `characters` (병합 registry, Task 1); `Player.join` (기존).
+- Consumes: `resolveAgentSpec` (Task 4); `creatableCharacters` + `themeFromTileSetUrl` (Task 1); `Player.join` (기존).
 - Produces: 확장된 `createAgent` 인풋 — `args: { descriptionIndex?: number, custom?: {name, character, identity, plan} }`. **정확히 하나만** 허용(XOR). 반환은 기존과 동일 `{ agentId }`.
 
 > **idempotency 범위 정정(⚠️ Codex 리뷰 #6)**: 설계의 "생성 중복/연타 방지"는 v1에서 **진짜 idempotency(requestId 기반)가 아니다.** v1 실제 범위 = **서버측 중복 이름 거부 + 클라이언트 `busy` 연타 가드**로 한정한다. requestId 기반 idempotency는 후속(멀티유저 조각 E와 함께)으로 미룸.
@@ -523,32 +628,14 @@ Modify `convex/aiTown/agentInputs.ts` — `createAgent` 블록을 교체:
       ),
     },
     handler: (game, now, args) => {
-      let name: string, character: string, identity: string, plan: string;
-      // ⚠️ Codex 리뷰 #5: 정확히 하나만 허용 (XOR)
-      const hasIndex = args.descriptionIndex !== undefined;
-      const hasCustom = args.custom !== undefined;
-      if (hasIndex === hasCustom) {
-        throw new Error('createAgent requires exactly one of descriptionIndex or custom');
-      }
-      if (hasCustom) {
-        const existingNames = [...game.playerDescriptions.values()].map((d) => d.name);
-        // ⚠️ Codex 2차 리뷰 #4: 화이트리스트는 병합 registry가 아니라 테마별 생성 가능 목록
-        const validCharacters = creatableCharacters(resolveTheme(process.env.WORLD_THEME)).map((c) => c.name);
-        const normalized = normalizeCustomAgent(args.custom!);
-        validateCustomAgent(normalized, {
-          existingNames,
-          agentCount: game.world.agents.size,
-          validCharacters,
-        });
-        ({ name, character, identity, plan } = normalized);
-      } else {
-        const idx = args.descriptionIndex!;
-        if (!Number.isInteger(idx) || idx < 0 || idx >= Descriptions.length) {
-          throw new Error(`Invalid descriptionIndex: ${idx}`);
-        }
-        const description = Descriptions[idx];
-        ({ name, character, identity, plan } = description);
-      }
+      // 결정 로직은 순수 함수로 추출되어 단위 테스트됨(Task 4). 핸들러는 mutation만 수행.
+      const { name, character, identity, plan } = resolveAgentSpec(args, {
+        descriptions: Descriptions,
+        existingNames: [...game.playerDescriptions.values()].map((d) => d.name),
+        agentCount: game.world.agents.size,
+        // ⚠️ Codex #4/#2: 화이트리스트는 병합 registry가 아니라, 영속된 worldMap.tileSetUrl 기준 테마의 생성 가능 목록
+        validCharacters: creatableCharacters(themeFromTileSetUrl(game.worldMap.tileSetUrl)).map((c) => c.name),
+      });
       const playerId = Player.join(game, now, name, character, identity);
       const agentId = game.allocId('agents');
       game.world.agents.set(
@@ -577,26 +664,32 @@ Modify `convex/aiTown/agentInputs.ts` — `createAgent` 블록을 교체:
 
 ```typescript
 import { creatableCharacters } from '../../data/characters';
-import { resolveTheme } from '../util/theme';
-import { validateCustomAgent, normalizeCustomAgent } from './createAgentValidation';
+import { themeFromTileSetUrl } from '../util/theme';
+import { resolveAgentSpec } from './createAgentValidation';
 ```
 
-(`Descriptions`는 이미 import되어 있음 — index 경로 유지용. 커스텀 character 화이트리스트는 `creatableCharacters(theme)` 기준이라 테마 경계를 지킨다.)
+(`Descriptions`는 이미 import되어 있음 — index 경로 유지용. 커스텀 character 화이트리스트는 `themeFromTileSetUrl(game.worldMap.tileSetUrl)` 기준이라 영속 상태와 일관되게 테마 경계를 지킨다.)
 
 - [ ] **Step 4: world.ts 휴먼 join 캐릭터도 테마별로 (⚠️ Codex 2차 리뷰 #4)**
 
-`convex/world.ts:134`의 `character: characters[Math.floor(Math.random() * characters.length)].name`이 병합 배열을 쓰므로 우주 모드에 folk 아바타가 섞인다. 테마별 생성 가능 목록으로 교체:
+`convex/world.ts:134`의 `character: characters[Math.floor(Math.random() * characters.length)].name`이 병합 배열을 쓰므로 우주 모드에 folk 아바타가 섞인다. **영속된 맵의 tileSetUrl**로 테마를 판별해 교체(단일 기준 일관성):
 
 ```typescript
 import { creatableCharacters } from '../data/characters';
-import { resolveTheme } from './util/theme';
-// ...
-const creatable = creatableCharacters(resolveTheme(process.env.WORLD_THEME));
+import { themeFromTileSetUrl } from './util/theme';
+// ... joinWorld 핸들러 안, world 조회 직후:
+const worldMap = await ctx.db
+  .query('maps')
+  .withIndex('worldId', (q) => q.eq('worldId', world._id))
+  .unique();
+const creatable = creatableCharacters(
+  worldMap ? themeFromTileSetUrl(worldMap.tileSetUrl) : 'folk',
+);
 // join 인풋:
 character: creatable[Math.floor(Math.random() * creatable.length)].name,
 ```
 
-(기존 `import { characters } from '../data/characters'`가 다른 곳에서 쓰이면 유지하고 creatable만 추가 사용.)
+(`maps` 테이블은 `worldId` 인덱스 보유 — 확인됨. 기존 `import { characters }`가 다른 곳에 쓰이면 유지.)
 
 - [ ] **Step 5: 타입체크**
 
@@ -699,8 +792,8 @@ git commit -m "chore: configure OpenRouter chat+embedding via custom provider"
 - Modify: `src/components/Game.tsx:68-82`
 
 **Interfaces:**
-- Consumes: `useSendInput(engineId, 'createAgent')` (확장된 custom 인자, Task 5); `spaceCharacters`(피커에 노출할 우주 아바타, Task 1).
-- Produces: `src/components/AgentCreator.tsx` → `export function AgentCreator({ engineId }: { engineId: Id<'engines'> })` — 버튼 + 모달. 모달 폼: **실제 스프라이트 미리보기** 아바타 그리드, name, identity, plan. 제출 시 `createAgent({ custom: {...} })`. 내부 `AvatarPreview`가 첫 걷기 프레임을 잘라 표시.
+- Consumes: `useSendInput(engineId, 'createAgent')` (확장된 custom 인자, Task 5); `creatableCharacters` + `themeFromTileSetUrl` (Task 1); `game: ServerGame`(테마 판별용 `game.worldMap.tileSetUrl`).
+- Produces: `src/components/AgentCreator.tsx` → `export function AgentCreator({ engineId, game }: { engineId: Id<'engines'>; game: ServerGame })` — 버튼 + 모달. 모달 폼: **실제 스프라이트 미리보기** 아바타 그리드(테마별 `pickable`), name, identity, plan. 제출 시 `createAgent({ custom: {...} })`. 서버 화이트리스트와 동일 기준이라 folk/space 모드 모두 정상.
 
 - [ ] **Step 1: 스프라이트시트 프레임 좌표 형식 확인 (⚠️ Codex 리뷰 #3)**
 
@@ -716,13 +809,16 @@ Create `src/components/AgentCreator.tsx`:
 import { useState } from 'react';
 import { Id } from '../../convex/_generated/dataModel';
 import { useSendInput } from '../hooks/sendInput';
-import { spaceCharacters } from '../../data/characters';
+import { characters, creatableCharacters } from '../../data/characters';
+import { themeFromTileSetUrl } from '../../convex/util/theme';
+import { ServerGame } from '../hooks/serverGame';
 
 // 첫 프레임을 잘라 보여주는 실제 아바타 미리보기.
 // ⚠️ Codex 2차 리뷰 #2: SpritesheetData.meta에는 size가 없고 scale만 있다.
 // 따라서 backgroundSize 계산 대신, 네이티브 프레임을 overflow로 자르고 transform으로 확대한다.
+// 병합 registry(characters)에서 찾으므로 folk/space 어느 캐릭터든 미리보기 가능.
 function AvatarPreview({ characterName, scale = 2 }: { characterName: string; scale?: number }) {
-  const c = spaceCharacters.find((sc) => sc.name === characterName);
+  const c = characters.find((sc) => sc.name === characterName);
   if (!c) return null;
   const frames = (c.spritesheetData as any).frames as Record<string, { frame: { x: number; y: number; w: number; h: number } }>;
   const first = Object.values(frames)[0]?.frame;
@@ -745,10 +841,12 @@ function AvatarPreview({ characterName, scale = 2 }: { characterName: string; sc
   );
 }
 
-export function AgentCreator({ engineId }: { engineId: Id<'engines'> }) {
+export function AgentCreator({ engineId, game }: { engineId: Id<'engines'>; game: ServerGame }) {
+  // ⚠️ Codex 3차 리뷰 #2: 피커 캐릭터 세트는 서버 화이트리스트와 동일 기준(worldMap.tileSetUrl)에서 도출
+  const pickable = creatableCharacters(themeFromTileSetUrl(game.worldMap.tileSetUrl));
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
-  const [character, setCharacter] = useState(spaceCharacters[0]?.name ?? '');
+  const [character, setCharacter] = useState(pickable[0]?.name ?? '');
   const [identity, setIdentity] = useState('');
   const [plan, setPlan] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -780,7 +878,7 @@ export function AgentCreator({ engineId }: { engineId: Id<'engines'> }) {
             <h2 className="text-lg mb-3">새 에이전트</h2>
             <label className="block text-sm mb-1">아바타</label>
             <div className="grid grid-cols-4 gap-2 mb-3">
-              {spaceCharacters.map((c) => (
+              {pickable.map((c) => (
                 <button
                   key={c.name}
                   onClick={() => setCharacter(c.name)}
@@ -815,7 +913,7 @@ export function AgentCreator({ engineId }: { engineId: Id<'engines'> }) {
 Modify `src/components/Game.tsx` — 우측 패널 `<PlayerDetails .../>` 바로 위에 추가:
 
 ```typescript
-          <AgentCreator engineId={engineId} />
+          <AgentCreator engineId={engineId} game={game} />
           <PlayerDetails
 ```
 
@@ -852,13 +950,19 @@ git commit -m "feat: AgentCreator modal for custom agent creation"
 **Interfaces:**
 - Consumes: 선택된 에이전트의 `agentDescriptions`(identity, plan). 기존 컴포넌트에서 agent description을 어떻게 조회하는지 확인 후 사용.
 
-- [ ] **Step 1: agentDescription 접근 방법 확인**
+- [ ] **Step 1: agentDescription 조회 (정확한 코드 — ⚠️ Codex 3차 리뷰 #3)**
 
-`src/components/PlayerDetails.tsx`에서 `game` 또는 query로 선택 player의 agent 및 그 description에 접근하는 경로 확인. (player → 해당 agent 찾기 → `game.agentDescriptions` 또는 worldState.)
+`PlayerDetails.tsx`는 `game: ServerGame`을 받고 이미 `game.world.players`, `game.playerDescriptions.get(playerId)`를 쓴다(확인됨). 같은 패턴으로, `playerDescription` 계산 줄(`const playerDescription = playerId && game.playerDescriptions.get(playerId);`) **바로 아래**에 agentDescription 조회를 추가:
+
+```typescript
+const agent =
+  playerId && [...game.world.agents.values()].find((a) => a.playerId === playerId);
+const agentDescription = agent ? game.agentDescriptions.get(agent.id) : undefined;
+```
 
 - [ ] **Step 2: identity/plan 렌더 추가**
 
-`PlayerDetails.tsx`의 `{!isMe && playerDescription?.description}` 표시 근처에, 해당 player가 에이전트면 identity/plan을 표시:
+`{!isMe && playerDescription?.description}` 표시 근처에 다음을 추가(에이전트일 때만 표시):
 
 ```typescript
 {agentDescription && (
@@ -868,8 +972,6 @@ git commit -m "feat: AgentCreator modal for custom agent creation"
   </>
 )}
 ```
-
-(`agentDescription`는 선택 player의 agentId로 조회. 정확한 조회 코드는 Step 1에서 파악한 패턴을 따름.)
 
 - [ ] **Step 3: 타입체크 + 시각 확인**
 

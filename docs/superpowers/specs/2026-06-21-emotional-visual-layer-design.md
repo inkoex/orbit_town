@@ -105,7 +105,7 @@ LLM 호출은 Convex action 안(=백엔드)에서 일어난다. 백엔드가 클
 - **Convex**: 무료 클라우드 dev 배포. **실행은 `npm run dev` 하나면 충분** — 내부적으로 `dev:backend`(convex dev)와 `dev:frontend`(vite)를 병렬 실행하고, `predev`가 `init`까지 돌린다. 별도 `npx convex dev` 불필요(⚠️ 수정 Codex 리뷰 #6).
 - **LLM = OpenRouter 단일 키** (⚠️ 수정 Codex 리뷰 #1):
   - OpenRouter는 채팅뿐 아니라 **임베딩 API도 제공**한다(`https://openrouter.ai/api/v1/embeddings`, 검증 완료). 따라서 **OpenAI 키 별도 추가 불필요** — OpenRouter 키 하나로 채팅+임베딩 모두 처리.
-  - `convex/util/llm.ts`의 **custom provider**가 이미 `LLM_API_URL` + `LLM_MODEL`(채팅) + `LLM_EMBEDDING_MODEL`(임베딩)을 각각 지정 가능. → `LLM_API_URL=https://openrouter.ai/api/v1` 로 설정.
+  - `convex/util/llm.ts`의 **custom provider**가 이미 `LLM_API_URL` + `LLM_MODEL`(채팅) + `LLM_EMBEDDING_MODEL`(임베딩)을 각각 지정 가능. → **`LLM_API_URL=https://openrouter.ai/api`** 로 설정(코드가 `/v1/chat/completions`·`/v1/embeddings`를 덧붙이므로 `/v1`을 넣으면 안 됨 — ⚠️ Codex 3차 리뷰 #6).
   - 채팅은 테스트용 무료 모델(`...:free`) 사용 가능(레이트리밋 있음).
 - ⚙️ **`convex/util/llm.ts` 수정 필요(작음)**: 임베딩 **차원으로 공급자를 추측**하는 검증 로직(`EMBEDDING_DIMENSION` switch)을 선택한 OpenRouter 임베딩 모델의 차원에 맞게 조정. `EMBEDDING_DIMENSION`을 그 모델 출력 차원으로 설정.
 - 📌 **범위 축소 메모(Grok 리뷰 #3 반론)**: Grok은 "chat용/embedding용 config 완전 분리"를 가장 큰 코드 변경으로 우려했으나, 이는 OpenRouter(chat)+OpenAI(embedding) **2개 공급자**를 전제로 한 것이다. Codex #1 반영으로 **OpenRouter 단일 공급자**가 채팅+임베딩을 모두 처리하므로 — 기존 custom provider 한 set으로 충분하고 **대규모 리팩토링은 불필요**하다. 남는 작업은 위 차원 검증 조정뿐. (역할별 다중 모델 라우팅은 후속 조각 C.)
