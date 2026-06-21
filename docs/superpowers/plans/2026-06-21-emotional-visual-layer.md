@@ -207,11 +207,16 @@ Modify `data/characters.ts`:
 import { spaceDescriptions, spaceCharacters } from './spaceCharacters';
 export { spaceDescriptions, spaceCharacters };
 export const folkDescriptions = Descriptions;
-// 병합 registry — Player.join/Player.tsx가 folk+space 모두 인식
+// 병합 registry — Player.join/Player.tsx가 folk+space 모두 "렌더"할 수 있게
 export const characters = [...folkCharacters, ...spaceCharacters];
+
+// ⚠️ Codex 2차 리뷰 #4: 렌더 registry는 병합하되, "생성 가능" 목록은 테마별로 분리.
+export function creatableCharacters(theme: 'folk' | 'space') {
+  return theme === 'space' ? spaceCharacters : folkCharacters;
+}
 ```
 
-(`Descriptions`는 folk 기본 그대로 유지 — init의 테마 분기에서 folk/space를 선택. `characters`만 병합되어 모든 스프라이트가 등록됨.)
+(`Descriptions`는 folk 기본 유지 — init 테마 분기에서 선택. `characters`(병합)는 *렌더링*용, `creatableCharacters(theme)`는 *생성 화이트리스트/무작위 선택*용으로 구분.)
 
 - [ ] **Step 7: 타입체크 + 테스트**
 
@@ -245,9 +250,13 @@ git commit -m "feat: add space character set and theme resolver"
 
 Create `data/space.ts`: `data/gentle.js`의 내용을 복제하되 `tilesetpath`만 `/ai-town/assets/space-tiles.png`로 바꾼다. **bg/obj 타일 인덱스 배열은 그대로** 둔다(인덱스 보존 원칙). 타일셋 픽셀 크기(`tilesetpxw/pxh`)가 새 PNG와 일치하는지 확인.
 
-- [ ] **Step 3: init.ts 테마 분기 구현**
+- [ ] **Step 3: init.ts 테마 분기 구현 (⚠️ Codex 2차 리뷰 #1)**
 
-Modify `convex/init.ts` — 상단 import 교체:
+문제: `createAgent`의 index 경로는 `agentInputs.ts:8`이 import한 **folk `Descriptions`** 로 해석된다. 따라서 우주 모드에서 `descriptionIndex`를 보내면 **folk 에이전트가 생성**된다. 우주 모드는 반드시 **custom 경로**로 실제 space description을 보내야 한다.
+
+Modify `convex/init.ts`:
+
+1. 상단 import 교체:
 
 ```typescript
 import { resolveTheme } from './util/theme';
@@ -260,7 +269,22 @@ const map = theme === 'space' ? spaceMap : gentleMap;
 const Descriptions = theme === 'space' ? spaceDescriptions : folkDescriptions;
 ```
 
-(기존 `import { Descriptions } from '../data/characters'`와 `import * as map from '../data/gentle'` 라인을 위 코드로 대체. 나머지 `map.*` / `Descriptions.*` 사용처는 변수명이 같아 변경 불필요.)
+(기존 `import { Descriptions } from '../data/characters'`와 `import * as map from '../data/gentle'` 라인을 대체. `map.*` 사용처는 변수명이 같아 변경 불필요.)
+
+2. createAgent 루프(31-36행)를 테마별 분기로 교체:
+
+```typescript
+      const toCreate = args.numAgents !== undefined ? args.numAgents : Descriptions.length;
+      for (let i = 0; i < toCreate; i++) {
+        const createArgs =
+          theme === 'space'
+            ? { custom: spaceDescriptions[i % spaceDescriptions.length] }
+            : { descriptionIndex: i % folkDescriptions.length };
+        await insertInput(ctx, worldStatus.worldId, 'createAgent', createArgs);
+      }
+```
+
+(space: custom 경로로 실제 description 전달 → 우주 에이전트 생성. folk: 기존 index 경로 유지.)
 
 - [ ] **Step 4: 타입체크**
 
@@ -508,7 +532,8 @@ Modify `convex/aiTown/agentInputs.ts` — `createAgent` 블록을 교체:
       }
       if (hasCustom) {
         const existingNames = [...game.playerDescriptions.values()].map((d) => d.name);
-        const validCharacters = characters.map((c) => c.name);
+        // ⚠️ Codex 2차 리뷰 #4: 화이트리스트는 병합 registry가 아니라 테마별 생성 가능 목록
+        const validCharacters = creatableCharacters(resolveTheme(process.env.WORLD_THEME)).map((c) => c.name);
         const normalized = normalizeCustomAgent(args.custom!);
         validateCustomAgent(normalized, {
           existingNames,
@@ -551,32 +576,48 @@ Modify `convex/aiTown/agentInputs.ts` — `createAgent` 블록을 교체:
 `convex/aiTown/agentInputs.ts` 상단에 추가:
 
 ```typescript
-import { characters } from '../../data/characters';
+import { creatableCharacters } from '../../data/characters';
+import { resolveTheme } from '../util/theme';
 import { validateCustomAgent, normalizeCustomAgent } from './createAgentValidation';
 ```
 
-(`Descriptions`는 이미 import되어 있음 — index 경로 유지용. `characters`가 folk/space 중 무엇을 가리키는지는 `data/characters.ts`의 활성 export를 따른다. v1에서 커스텀 character 화이트리스트는 활성 세트 기준.)
+(`Descriptions`는 이미 import되어 있음 — index 경로 유지용. 커스텀 character 화이트리스트는 `creatableCharacters(theme)` 기준이라 테마 경계를 지킨다.)
 
-- [ ] **Step 4: 타입체크**
+- [ ] **Step 4: world.ts 휴먼 join 캐릭터도 테마별로 (⚠️ Codex 2차 리뷰 #4)**
+
+`convex/world.ts:134`의 `character: characters[Math.floor(Math.random() * characters.length)].name`이 병합 배열을 쓰므로 우주 모드에 folk 아바타가 섞인다. 테마별 생성 가능 목록으로 교체:
+
+```typescript
+import { creatableCharacters } from '../data/characters';
+import { resolveTheme } from './util/theme';
+// ...
+const creatable = creatableCharacters(resolveTheme(process.env.WORLD_THEME));
+// join 인풋:
+character: creatable[Math.floor(Math.random() * creatable.length)].name,
+```
+
+(기존 `import { characters } from '../data/characters'`가 다른 곳에서 쓰이면 유지하고 creatable만 추가 사용.)
+
+- [ ] **Step 5: 타입체크**
 
 Run: `npx tsc --noEmit`
 Expected: 에러 없음. (init.ts의 기존 `createAgent({descriptionIndex})` 호출이 여전히 유효.)
 
-- [ ] **Step 5: index 경로 무손상 확인**
+- [ ] **Step 6: index 경로 무손상 확인 (folk 모드)**
 
-Run: `npx convex run testing:wipeAllTables` 후 `npm run dev`로 init 동작 확인 → 기본 에이전트가 정상 생성됨.
+Run: `npx convex run testing:wipeAllTables` 후 (WORLD_THEME 미설정) `npm run dev`로 init 동작 확인 → folk 기본 에이전트가 정상 생성됨.
 Expected: 기존과 동일하게 에이전트 생성.
 
-- [ ] **Step 6: custom 경로 수동 테스트**
+- [ ] **Step 7: custom 경로 수동 테스트**
 
 브라우저 콘솔이나 `npx convex run`으로 custom 인풋을 보내 에이전트 1명 생성(엔진 인풋 경로). 또는 Phase 5 UI 완성 후 통합 검증으로 미룬다. 최소: 잘못된 character/빈 이름이 서버에서 거부되는지 확인.
 Expected: 유효 입력은 에이전트 생성, 위반 입력은 에러.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add convex/aiTown/agentInputs.ts
-git commit -m "feat: support custom agent creation in createAgent input"
+git add convex/aiTown/agentInputs.ts convex/world.ts
+git commit -m "feat: support custom agent creation with theme-scoped character whitelist"
 ```
 
 ---
@@ -595,9 +636,27 @@ git commit -m "feat: support custom agent creation in createAgent input"
 
 OpenRouter 임베딩 모델을 **확정**한다: `openai/text-embedding-3-small`, **출력 차원 1536**. 채팅 모델도 확정(테스트용 무료 모델, 예: `meta-llama/llama-3.3-70b-instruct:free` — OpenRouter 모델 페이지에서 현재 사용 가능한 `:free` 모델로 최종 확인).
 
-- [ ] **Step 2: EMBEDDING_DIMENSION 및 검증 조정**
+- [ ] **Step 2: detectMismatchedLLMProvider가 custom을 먼저 판별하도록 수정 (⚠️ Codex 2차 리뷰 #3)**
 
-`convex/util/llm.ts` 상단 `EMBEDDING_DIMENSION = 1536`(이미 `OPENAI_EMBEDDING_DIMENSION = 1536`). custom provider 경로에서 1536이 검증을 통과하는지 확인(기존 OpenAI 케이스 재사용 가능, 추가 변경 최소).
+문제: `EMBEDDING_DIMENSION=1536`이면 `detectMismatchedLLMProvider()`가 `case OPENAI_EMBEDDING_DIMENSION`에 걸려 **무조건 `OPENAI_API_KEY`를 요구**한다(`LLM_PROVIDER=custom`/`LLM_API_KEY` 미확인). 그래서 OpenRouter 설정으로 `init.ts:17` 호출 시 throw. **custom provider를 dimension switch보다 먼저 판별**해야 한다.
+
+`convex/util/llm.ts` 상단 `EMBEDDING_DIMENSION = 1536` 유지. `detectMismatchedLLMProvider` 함수 시작부에 custom 우선 분기 추가:
+
+```typescript
+export function detectMismatchedLLMProvider() {
+  // custom provider(OpenRouter 등) 판별 조건은 getLLMConfig와 동일하게 LLM_API_URL 존재 여부.
+  // (getLLMConfig는 line 75 `if (process.env.LLM_API_URL)`로 custom을 선택하므로 여기서도 같은 키를 써야 일관됨.)
+  if (process.env.LLM_API_URL) {
+    if (!process.env.LLM_API_KEY) {
+      throw new Error("Set LLM_API_KEY: npx convex env set LLM_API_KEY 'your-openrouter-key'");
+    }
+    return;
+  }
+  switch (EMBEDDING_DIMENSION) {
+    // ...기존 분기 그대로...
+```
+
+(기존 switch 본문은 유지하고, 위 custom 분기만 함수 맨 앞에 삽입. 조건이 `LLM_API_URL` 기준이라 `getLLMConfig`의 custom 선택 로직과 정확히 일치한다.)
 
 - [ ] **Step 3: base URL 수정 (⚠️ Codex 리뷰 #1 — 치명적)**
 
@@ -659,26 +718,30 @@ import { Id } from '../../convex/_generated/dataModel';
 import { useSendInput } from '../hooks/sendInput';
 import { spaceCharacters } from '../../data/characters';
 
-// 첫 걷기 프레임을 잘라 보여주는 실제 아바타 미리보기 (정수 배율 크롭)
+// 첫 프레임을 잘라 보여주는 실제 아바타 미리보기.
+// ⚠️ Codex 2차 리뷰 #2: SpritesheetData.meta에는 size가 없고 scale만 있다.
+// 따라서 backgroundSize 계산 대신, 네이티브 프레임을 overflow로 자르고 transform으로 확대한다.
 function AvatarPreview({ characterName, scale = 2 }: { characterName: string; scale?: number }) {
   const c = spaceCharacters.find((sc) => sc.name === characterName);
   if (!c) return null;
-  const sheet = c.spritesheetData as any;
-  const frames = sheet.frames as Record<string, { frame: { x: number; y: number; w: number; h: number } }>;
+  const frames = (c.spritesheetData as any).frames as Record<string, { frame: { x: number; y: number; w: number; h: number } }>;
   const first = Object.values(frames)[0]?.frame;
-  const sheetSize = sheet.meta?.size as { w: number; h: number } | undefined;
-  if (!first || !sheetSize) return null;
+  if (!first) return null;
   return (
-    <div
-      style={{
-        width: first.w * scale,
-        height: first.h * scale,
-        backgroundImage: `url(${c.textureUrl})`,
-        backgroundPosition: `-${first.x * scale}px -${first.y * scale}px`,
-        backgroundSize: `${sheetSize.w * scale}px ${sheetSize.h * scale}px`,
-        imageRendering: 'pixelated',
-      }}
-    />
+    <div style={{ width: first.w * scale, height: first.h * scale, overflow: 'hidden' }}>
+      <div
+        style={{
+          width: first.w,
+          height: first.h,
+          backgroundImage: `url(${c.textureUrl})`,
+          backgroundPosition: `-${first.x}px -${first.y}px`,
+          backgroundRepeat: 'no-repeat',
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          imageRendering: 'pixelated',
+        }}
+      />
+    </div>
   );
 }
 
@@ -745,7 +808,7 @@ export function AgentCreator({ engineId }: { engineId: Id<'engines'> }) {
 }
 ```
 
-(주: 아바타 그리드는 v1에서 character 이름 버튼으로 시작. 시간 여유 시 `<Character>` 컴포넌트로 실제 스프라이트 미리보기로 개선 — 범위 외 권장.)
+(주: 아바타 그리드는 `AvatarPreview`로 실제 스프라이트를 보여준다 — 이것이 핵심 감성 요소라 v1 필수.)
 
 - [ ] **Step 3: Game.tsx 우측 패널에 삽입**
 
