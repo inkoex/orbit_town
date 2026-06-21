@@ -44,10 +44,21 @@ export default function Game() {
       {SHOW_DEBUG_UI && <DebugTimeManager timeManager={timeManager} width={200} height={100} />}
       <div className="mx-auto w-full max-w grid grid-rows-[240px_1fr] lg:grid-rows-[1fr] lg:grid-cols-[1fr_auto] lg:grow max-w-[1400px] min-h-[480px] game-frame">
         {/* Game area */}
-        <div className="relative overflow-hidden bg-brown-900" ref={gameWrapperRef}>
+        <div
+          className="relative overflow-hidden"
+          ref={gameWrapperRef}
+          style={{
+            background:
+              'radial-gradient(1.5px 1.5px at 20% 30%, #fff, transparent),' +
+              'radial-gradient(1.5px 1.5px at 70% 60%, #cfe6ff, transparent),' +
+              'radial-gradient(1.5px 1.5px at 45% 80%, #fff, transparent),' +
+              'radial-gradient(1.5px 1.5px at 85% 25%, #9bd, transparent),' +
+              '#05060f',
+          }}
+        >
           <div className="absolute inset-0">
             <div className="container">
-              <Stage width={width} height={height} options={{ backgroundColor: 0x7ab5ff }}>
+              <Stage width={width} height={height} options={{ backgroundAlpha: 0 }}>
                 {/* Re-propagate context because contexts are not shared between renderers.
 https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-531549215 */}
                 <ConvexProvider client={convex}>
