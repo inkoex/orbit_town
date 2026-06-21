@@ -1,13 +1,19 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { DatabaseReader, MutationCtx, mutation } from './_generated/server';
-import { Descriptions } from '../data/characters';
-import * as map from '../data/gentle';
+import { folkDescriptions, spaceDescriptions } from '../data/characters';
+import * as gentleMap from '../data/gentle';
+import * as spaceMap from '../data/space';
 import { insertInput } from './aiTown/insertInput';
 import { Id } from './_generated/dataModel';
 import { createEngine } from './aiTown/main';
 import { ENGINE_ACTION_DURATION } from './constants';
 import { detectMismatchedLLMProvider } from './util/llm';
+import { resolveTheme } from './util/theme';
+
+const theme = resolveTheme(process.env.WORLD_THEME);
+const map = theme === 'space' ? spaceMap : gentleMap;
+const Descriptions = theme === 'space' ? spaceDescriptions : folkDescriptions;
 
 const init = mutation({
   args: {
@@ -30,9 +36,11 @@ const init = mutation({
     if (shouldCreate) {
       const toCreate = args.numAgents !== undefined ? args.numAgents : Descriptions.length;
       for (let i = 0; i < toCreate; i++) {
-        await insertInput(ctx, worldStatus.worldId, 'createAgent', {
-          descriptionIndex: i % Descriptions.length,
-        });
+        const createArgs =
+          theme === 'space'
+            ? { custom: spaceDescriptions[i % spaceDescriptions.length] }
+            : { descriptionIndex: i % folkDescriptions.length };
+        await insertInput(ctx, worldStatus.worldId, 'createAgent', createArgs);
       }
     }
   },
