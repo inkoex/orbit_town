@@ -249,6 +249,21 @@ npx convex env set LLM_EMBEDDING_MODEL 'your-embedding-model'
 
 Note: if `LLM_API_KEY` is not required, don't set it.
 
+For OpenRouter, this project uses one API key for chat and embeddings. The base URL intentionally
+omits `/v1` because `convex/util/llm.ts` appends the endpoint paths:
+
+```sh
+npx convex env set LLM_PROVIDER custom
+npx convex env set LLM_API_URL https://openrouter.ai/api
+npx convex env set LLM_MODEL openai/gpt-oss-20b:free
+npx convex env set LLM_EMBEDDING_MODEL openai/text-embedding-3-small
+npx convex env set LLM_API_KEY 'your-openrouter-key'
+```
+
+`openai/text-embedding-3-small` returns 1536-dimensional vectors, so `EMBEDDING_DIMENSION` must be
+1536 when using this configuration. Free chat model availability can change; select a currently
+available `:free` model from OpenRouter when necessary.
+
 ### Note on changing the LLM provider or embedding model:
 
 If you change the LLM provider or embedding model, you should delete your data and start over. The
