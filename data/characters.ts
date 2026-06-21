@@ -66,7 +66,7 @@ export const Descriptions = [
   // },
 ];
 
-export const characters = [
+export const folkCharacters = [
   {
     name: 'f1',
     textureUrl: '/ai-town/assets/32x32folk.png',
@@ -119,3 +119,13 @@ export const characters = [
 
 // Characters move at 0.75 tiles per second.
 export const movementSpeed = 0.75;
+
+import { spaceDescriptions, spaceCharacters } from './spaceCharacters';
+
+export { spaceDescriptions, spaceCharacters };
+export const folkDescriptions = Descriptions;
+export const characters = [...folkCharacters, ...spaceCharacters];
+
+export function creatableCharacters(theme: 'folk' | 'space') {
+  return theme === 'space' ? spaceCharacters : folkCharacters;
+}
