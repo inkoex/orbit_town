@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**상태:** 로직/구조 부분 동결(외부 리뷰 3회 반영). **Phase 0(에셋)은 동결 제외** — 실제 에셋·라이선스·아바타 크기는 시각 프로토타입으로 확정한 뒤 이 문서의 Phase 0만 갱신한다.
+
 **Goal:** AI Town을 우주정거장 테마로 리스킨하고, 사용자가 프리메이드 아바타에 이름·성격을 붙여 커스텀 에이전트를 생성해 월드에서 살아 움직이는 걸 보게 한다.
 
 **Architecture:** 기존 AI Town(Convex 엔진 + PixiJS 렌더링)을 **확장**한다. 엔진·메모리·대화·시뮬레이션 루프는 그대로 재사용하고, ① 에셋 교체(인덱스 보존 리페인트) ② 테마 전환 플래그 ③ `createAgent` 커스텀 경로 + 서버측 가드 ④ OpenRouter 단일 LLM ⑤ 생성 UI만 추가한다.
@@ -397,7 +399,7 @@ git commit -m "feat: required starfield space background behind the stage"
 
 **Interfaces:**
 - Produces:
-  - `convex/constants.ts` → `export const MAX_AGENTS = 16; export const AGENT_NAME_MAX = 32; export const AGENT_IDENTITY_MAX = 1000; export const AGENT_PLAN_MAX = 500;`
+  - `convex/constants.ts` → `export const MAX_AGENTS = 8; export const AGENT_NAME_MAX = 32; export const AGENT_IDENTITY_MAX = 1000; export const AGENT_PLAN_MAX = 500;`
   - `convex/aiTown/createAgentValidation.ts` → `CustomAgentArgs`, `validateCustomAgent(args, ctx): void`(위반 시 throw), `normalizeCustomAgent(args): CustomAgentArgs`(trim), `CreateAgentArgs { descriptionIndex?: number; custom?: CustomAgentArgs }`, `resolveAgentSpec(args: CreateAgentArgs, ctx: { descriptions: CustomAgentArgs[]; existingNames: string[]; agentCount: number; validCharacters: string[] }): CustomAgentArgs`(XOR+index검사+custom검증·정규화 → 저장 spec).
 
 - [ ] **Step 1: 상수 추가**
@@ -1008,7 +1010,7 @@ UI로 커스텀 에이전트 2~3명 생성 → 이동·성격대로 대화 확�
 
 - [ ] **Step 4: 생성 가드 확인**
 
-빈 이름 / 33자 초과 이름 / 중복 이름 / 비허용 character / 최대치(16) 초과 → 서버에서 거부됨.
+빈 이름 / 33자 초과 이름 / 중복 이름 / 비허용 character / 최대치(8) 초과 → 서버에서 거부됨.
 
 - [ ] **Step 5: 영속성 확인**
 
