@@ -81,9 +81,11 @@ CC0/상업적 사용 가능한 32x32 우주(우주비행사 등) 캐릭터 스�
 
 따라서 `space-tiles.png`는 **동일한 1440×1024 / 32px 그리드**에서, **각 셀을 우주 톤으로 리페인트**해야 한다. 일반 우주 타일셋을 그대로 내려받으면 배치가 달라 맵이 깨진다 → **gentle-obj.png를 베이스로 셀 단위 리컬러/리드로우**가 현실적 방법(이미지 편집 또는 도트 작업). 실제 사용 인덱스만 칠해도 됨(`data/gentle.js`의 bgtiles/objmap에 등장하는 인덱스 집합).
 
-- [ ] **Step 4: 스프라이트시트 데이터 작성**
+- [ ] **Step 4: 스프라이트시트 데이터 작성 + placeholder 교체**
 
-각 우주 캐릭터마다 `data/spritesheets/s1.ts` … 형태로 프레임/애니메이션 데이터를 작성한다(`f1.ts`를 템플릿으로). PNG 내 좌표와 프레임 이름이 일치해야 한다.
+각 우주 캐릭터마다 `data/spritesheets/s1.ts` … `s6.ts`로 프레임/애니메이션 데이터를 작성한다(`f1.ts`를 템플릿으로). PNG 내 좌표와 프레임 이름이 일치해야 한다.
+
+그런 다음 **Task 1에서 넣어둔 placeholder를 실제 에셋으로 교체**: `data/spaceCharacters.ts`의 import를 `./spritesheets/f1..f6` → `./spritesheets/s1..s6`로, `textureUrl`을 `/ai-town/assets/32x32folk.png` → `/ai-town/assets/space-folk.png`로 변경. (캐릭터 이름 `s1`~`s6`은 불변.) 교체 후 `npx tsc --noEmit` 통과 확인.
 
 - [ ] **Step 5: CREDITS.md 작성**
 
@@ -109,8 +111,8 @@ Expected: 모든 파일 존재, CREDITS.md에 상업적 사용 가능 라이선�
 - [ ] **Step 7: Commit**
 
 ```bash
-git add public/assets/space-folk.png public/assets/space-tiles.png data/spritesheets/ data/assets/CREDITS.md
-git commit -m "assets: add space-themed sprites and tileset (Phase 0)"
+git add public/assets/space-folk.png public/assets/space-tiles.png data/spritesheets/ data/spaceCharacters.ts data/assets/CREDITS.md
+git commit -m "assets: add space sprites/tileset and swap placeholders (Phase 0)"
 ```
 
 ---
@@ -197,12 +199,15 @@ Expected: PASS (5 tests — resolveTheme 3 + themeFromTileSetUrl 2).
 Create `data/spaceCharacters.ts` (folk 구조를 그대로 따름, `s1..s8` import):
 
 ```typescript
-import { data as s1 } from './spritesheets/s1';
-import { data as s2 } from './spritesheets/s2';
-import { data as s3 } from './spritesheets/s3';
-import { data as s4 } from './spritesheets/s4';
-import { data as s5 } from './spritesheets/s5';
-import { data as s6 } from './spritesheets/s6';
+// ⚠️ placeholder: Task 0가 실제 s1~s6 스프라이트 + space-folk.png로 교체.
+// 의존성 순서(Task 0 마지막) 때문에 일단 기존 folk 데이터·PNG를 placeholder 아트로 사용.
+// 캐릭터 이름은 's1'~'s6' 유지(spaceDescriptions·화이트리스트·피커가 이 이름에 의존).
+import { data as s1 } from './spritesheets/f1';
+import { data as s2 } from './spritesheets/f2';
+import { data as s3 } from './spritesheets/f3';
+import { data as s4 } from './spritesheets/f4';
+import { data as s5 } from './spritesheets/f5';
+import { data as s6 } from './spritesheets/f6';
 
 export const spaceDescriptions = [
   { name: 'Nova', character: 's1', identity: `Nova is a curious station botanist who loves rare alien plants and talks to them.`, plan: 'You want to catalogue every plant on the station.' },
@@ -213,13 +218,14 @@ export const spaceDescriptions = [
   { name: 'Iris', character: 's6', identity: `Iris is a chatty comms officer who knows all the station gossip.`, plan: 'You want to hear everything first.' },
 ];
 
+// placeholder textureUrl = 기존 folk PNG. Task 0가 '/ai-town/assets/space-folk.png'로 교체.
 export const spaceCharacters = [
-  { name: 's1', textureUrl: '/ai-town/assets/space-folk.png', spritesheetData: s1, speed: 0.1 },
-  { name: 's2', textureUrl: '/ai-town/assets/space-folk.png', spritesheetData: s2, speed: 0.1 },
-  { name: 's3', textureUrl: '/ai-town/assets/space-folk.png', spritesheetData: s3, speed: 0.1 },
-  { name: 's4', textureUrl: '/ai-town/assets/space-folk.png', spritesheetData: s4, speed: 0.1 },
-  { name: 's5', textureUrl: '/ai-town/assets/space-folk.png', spritesheetData: s5, speed: 0.1 },
-  { name: 's6', textureUrl: '/ai-town/assets/space-folk.png', spritesheetData: s6, speed: 0.1 },
+  { name: 's1', textureUrl: '/ai-town/assets/32x32folk.png', spritesheetData: s1, speed: 0.1 },
+  { name: 's2', textureUrl: '/ai-town/assets/32x32folk.png', spritesheetData: s2, speed: 0.1 },
+  { name: 's3', textureUrl: '/ai-town/assets/32x32folk.png', spritesheetData: s3, speed: 0.1 },
+  { name: 's4', textureUrl: '/ai-town/assets/32x32folk.png', spritesheetData: s4, speed: 0.1 },
+  { name: 's5', textureUrl: '/ai-town/assets/32x32folk.png', spritesheetData: s5, speed: 0.1 },
+  { name: 's6', textureUrl: '/ai-town/assets/32x32folk.png', spritesheetData: s6, speed: 0.1 },
 ];
 ```
 
