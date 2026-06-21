@@ -1,10 +1,9 @@
-import { data as s1 } from './spritesheets/s1';
-import { data as s2 } from './spritesheets/s2';
-import { data as s3 } from './spritesheets/s3';
-import { data as s4 } from './spritesheets/s4';
-import { data as s5 } from './spritesheets/s5';
-import { data as s6 } from './spritesheets/s6';
-import { SpritesheetData } from './spritesheets/types';
+import { data as s1 } from './spritesheets/f1';
+import { data as s2 } from './spritesheets/f2';
+import { data as s3 } from './spritesheets/f3';
+import { data as s4 } from './spritesheets/f4';
+import { data as s5 } from './spritesheets/f5';
+import { data as s6 } from './spritesheets/f6';
 
 export const spaceDescriptions = [
   {
@@ -49,56 +48,43 @@ export const spaceDescriptions = [
   },
 ];
 
-const spaceTextureUrl = '/ai-town/assets/space-folk.png';
-const frontFrames = ['down', 'down2', 'down3'];
-
-function frontFacingSpritesheet(data: SpritesheetData): SpritesheetData {
-  return {
-    ...data,
-    animations: {
-      left: frontFrames,
-      right: frontFrames,
-      up: frontFrames,
-      down: frontFrames,
-    },
-  };
-}
+const placeholderTextureUrl = '/ai-town/assets/32x32folk.png';
 
 export const spaceCharacters = [
   {
     name: 's1',
-    textureUrl: spaceTextureUrl,
-    spritesheetData: frontFacingSpritesheet(s1),
+    textureUrl: placeholderTextureUrl,
+    spritesheetData: s1,
     speed: 0.1,
   },
   {
     name: 's2',
-    textureUrl: spaceTextureUrl,
-    spritesheetData: frontFacingSpritesheet(s2),
+    textureUrl: placeholderTextureUrl,
+    spritesheetData: s2,
     speed: 0.1,
   },
   {
     name: 's3',
-    textureUrl: spaceTextureUrl,
-    spritesheetData: frontFacingSpritesheet(s3),
+    textureUrl: placeholderTextureUrl,
+    spritesheetData: s3,
     speed: 0.1,
   },
   {
     name: 's4',
-    textureUrl: spaceTextureUrl,
-    spritesheetData: frontFacingSpritesheet(s4),
+    textureUrl: placeholderTextureUrl,
+    spritesheetData: s4,
     speed: 0.1,
   },
   {
     name: 's5',
-    textureUrl: spaceTextureUrl,
-    spritesheetData: frontFacingSpritesheet(s5),
+    textureUrl: placeholderTextureUrl,
+    spritesheetData: s5,
     speed: 0.1,
   },
   {
     name: 's6',
-    textureUrl: spaceTextureUrl,
-    spritesheetData: frontFacingSpritesheet(s6),
+    textureUrl: placeholderTextureUrl,
+    spritesheetData: s6,
     speed: 0.1,
   },
 ];
