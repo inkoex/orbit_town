@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
-import { internalAction } from '../_generated/server';
-import { WorldMap, serializedWorldMap } from './worldMap';
+import { internalAction, internalQuery } from '../_generated/server';
+import { WorldMap, SerializedWorldMap } from './worldMap';
 import { rememberConversation } from '../agent/memory';
 import { GameId, agentId, conversationId, playerId } from './ids';
 import {
@@ -13,7 +13,8 @@ import { serializedAgent } from './agent';
 import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN } from '../constants';
 import { api, internal } from '../_generated/api';
 import { sleep } from '../util/sleep';
-import { serializedPlayer } from './player';
+import { SerializedPlayer, serializedPlayer } from './player';
+import { Point } from '../util/types';
 
 export const agentRememberConversation = internalAction({
   args: {
@@ -90,18 +91,66 @@ export const agentGenerateMessage = internalAction({
   },
 });
 
+// Loaded at execution time so the large world map and candidate player list stay
+// out of the scheduled args. Candidate positions are overlaid with the latest
+// render snapshot so invite decisions use up-to-date positions.
+export const loadAgentOperationContext = internalQuery({
+  args: {
+    worldId: v.id('worlds'),
+    playerId,
+  },
+  handler: async (ctx, args) => {
+    const world = await ctx.db.get(args.worldId);
+    if (!world) {
+      throw new Error(`Invalid world ID: ${args.worldId}`);
+    }
+    const worldMapDoc = await ctx.db
+      .query('maps')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
+      .unique();
+    if (!worldMapDoc) {
+      throw new Error(`No map for world: ${args.worldId}`);
+    }
+    const renderState = await ctx.db
+      .query('worldRenderStates')
+      .withIndex('by_worldId', (q) => q.eq('worldId', args.worldId))
+      .unique();
+    const renderPositions = new Map<string, Point>();
+    for (const rp of renderState?.players ?? []) {
+      renderPositions.set(rp.playerId, rp.position);
+    }
+    const inConversation = new Set<string>();
+    for (const conversation of world.conversations) {
+      for (const participant of conversation.participants) {
+        inConversation.add(participant.playerId);
+      }
+    }
+    const otherFreePlayers: SerializedPlayer[] = world.players
+      .filter((p) => p.id !== args.playerId && !inConversation.has(p.id))
+      .map((p) => {
+        const overlaid = renderPositions.get(p.id);
+        return overlaid ? { ...p, position: overlaid } : p;
+      });
+    const { _id, _creationTime, worldId: _worldId, ...map } = worldMapDoc;
+    return { map, otherFreePlayers };
+  },
+});
+
 export const agentDoSomething = internalAction({
   args: {
     worldId: v.id('worlds'),
     player: v.object(serializedPlayer),
     agent: v.object(serializedAgent),
-    map: v.object(serializedWorldMap),
-    otherFreePlayers: v.array(v.object(serializedPlayer)),
     operationId: v.string(),
   },
   handler: async (ctx, args) => {
     const { player, agent } = args;
-    const map = new WorldMap(args.map);
+    const context: { map: SerializedWorldMap; otherFreePlayers: SerializedPlayer[] } =
+      await ctx.runQuery(internal.aiTown.agentOperations.loadAgentOperationContext, {
+        worldId: args.worldId,
+        playerId: player.id,
+      });
+    const map = new WorldMap(context.map);
     const now = Date.now();
     // Don't try to start a new conversation if we were just in one.
     const justLeftConversation =
@@ -151,7 +200,7 @@ export const agentDoSomething = internalAction({
             now,
             worldId: args.worldId,
             player: args.player,
-            otherFreePlayers: args.otherFreePlayers,
+            otherFreePlayers: context.otherFreePlayers,
           });
 
     // TODO: We hit a lot of OCC errors on sending inputs in this file. It's

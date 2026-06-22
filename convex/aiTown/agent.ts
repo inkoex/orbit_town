@@ -76,17 +76,13 @@ export class Agent {
     // If we have been wandering but haven't thought about something to do for
     // a while, do something.
     if (!conversation && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)) {
+      // Only the compact decision-time snapshot is scheduled. The large world
+      // map and candidate player list are loaded at execution time via
+      // loadAgentOperationContext so they never bloat the scheduled args.
       this.startOperation(game, now, 'agentDoSomething', {
         worldId: game.worldId,
         player: player.serialize(),
-        otherFreePlayers: [...game.world.players.values()]
-          .filter((p) => p.id !== player.id)
-          .filter(
-            (p) => ![...game.world.conversations.values()].find((c) => c.participants.has(p.id)),
-          )
-          .map((p) => p.serialize()),
         agent: this.serialize(),
-        map: game.worldMap.serialize(),
       });
       return;
     }
