@@ -7,12 +7,17 @@ import { serializedAgentDescription } from './agentDescription';
 import { serializedWorld } from './world';
 import { serializedWorldMap } from './worldMap';
 import { serializedConversation } from './conversation';
+import { serializedRenderState } from './renderState';
 import { conversationId, playerId } from './ids';
 
 export const aiTownTables = {
   // This table has a single document that stores all players, conversations, and agents. This
   // data is small and changes regularly over time.
   worlds: defineTable({ ...serializedWorld }),
+
+  // High-churn render snapshot: exactly one document per world, updated ~1s,
+  // holding only the compact data the client needs to draw the scene.
+  worldRenderStates: defineTable({ ...serializedRenderState }).index('by_worldId', ['worldId']),
 
   // Worlds can be started or stopped by the developer or paused for inactivity, and this
   // infrequently changing document tracks this world state.
