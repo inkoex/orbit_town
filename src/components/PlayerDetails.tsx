@@ -138,7 +138,7 @@ export default function PlayerDetails({
     <>
       <div className="flex gap-4">
         <div className="box w-3/4 sm:w-full mr-auto">
-          <h2 className="bg-brown-700 p-2 font-display text-2xl sm:text-4xl tracking-wider shadow-solid text-center">
+          <h2 className="bg-brown-700/40 p-3 font-display text-sm sm:text-base tracking-widest uppercase text-center">
             {playerDescription?.name}
           </h2>
         </div>
@@ -225,7 +225,7 @@ export default function PlayerDetails({
         </div>
       )}
       <div className="desc my-6">
-        <p className="leading-tight -m-4 bg-brown-700 text-base sm:text-sm">
+        <p className="p-3 text-brown-200 text-sm leading-relaxed">
           {!isMe && playerDescription?.description}
           {isMe && <i>This is you!</i>}
           {!isMe && inConversationWithMe && (
@@ -238,12 +238,12 @@ export default function PlayerDetails({
       </div>
       {agentDescription && (
         <>
-          <div className="mt-2">
-            <span className="uppercase text-xs">Identity</span>
+          <div className="border-l-2 border-clay-700 pl-3 mt-3 text-xs text-brown-300">
+            <span className="uppercase tracking-widest text-clay-300 block mb-1">Identity</span>
             <p>{agentDescription.identity}</p>
           </div>
-          <div className="mt-2">
-            <span className="uppercase text-xs">Plan</span>
+          <div className="border-l-2 border-clay-700 pl-3 mt-2 text-xs text-brown-300">
+            <span className="uppercase tracking-widest text-clay-300 block mb-1">Plan</span>
             <p>{agentDescription.plan}</p>
           </div>
         </>

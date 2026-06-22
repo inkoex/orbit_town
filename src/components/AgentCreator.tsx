@@ -62,8 +62,10 @@ export function AgentCreator({ engineId, game }: { engineId: Id<'engines'>; game
       </button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-brown-800 text-brown-100 p-6 rounded w-96 max-w-[90vw]">
-            <h2 className="text-lg mb-3">새 에이전트</h2>
+          <div className="bg-brown-800 text-brown-100 p-6 rounded-lg w-96 max-w-[90vw] border border-brown-900 shadow-2xl shadow-black/60">
+            <h2 className="text-xs font-display tracking-widest uppercase text-clay-300 mb-4">
+              New Agent
+            </h2>
             <label className="block text-sm mb-1">아바타</label>
             <div className="grid grid-cols-4 gap-2 mb-3">
               {pickable.map((candidate) => (
@@ -80,19 +82,19 @@ export function AgentCreator({ engineId, game }: { engineId: Id<'engines'>; game
               ))}
             </div>
             <input
-              className="w-full mb-2 text-black px-2 py-1"
+              className="w-full mb-2 bg-brown-900 text-brown-100 border border-brown-900 rounded px-3 py-2 text-sm focus:outline-none focus:border-clay-500"
               placeholder="이름"
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
             <textarea
-              className="w-full mb-2 text-black px-2 py-1"
+              className="w-full mb-2 bg-brown-900 text-brown-100 border border-brown-900 rounded px-3 py-2 text-sm focus:outline-none focus:border-clay-500"
               placeholder="성격 (identity)"
               value={identity}
               onChange={(event) => setIdentity(event.target.value)}
             />
             <textarea
-              className="w-full mb-2 text-black px-2 py-1"
+              className="w-full mb-2 bg-brown-900 text-brown-100 border border-brown-900 rounded px-3 py-2 text-sm focus:outline-none focus:border-clay-500"
               placeholder="계획 (plan)"
               value={plan}
               onChange={(event) => setPlan(event.target.value)}
