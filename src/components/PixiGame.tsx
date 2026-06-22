@@ -39,6 +39,10 @@ export const PixiGame = (props: {
 
   const moveTo = useSendInput(props.engineId, 'moveTo');
 
+  const { width, height, tileDim } = props.game.worldMap;
+  const originX = ISO_DEBUG ? isoOriginX(height, tileDim) : 0;
+  const isoSize = ISO_DEBUG ? isoViewportSize(width, height, tileDim) : null;
+
   // Interaction for clicking on the world to navigate.
   const dragStart = useRef<{ screenX: number; screenY: number } | null>(null);
   const onMapPointerDown = (e: any) => {
@@ -82,9 +86,6 @@ export const PixiGame = (props: {
     console.log(`Moving to ${JSON.stringify(roundedTiles)}`);
     await toastOnError(moveTo({ playerId: humanPlayerId, destination: roundedTiles }));
   };
-  const { width, height, tileDim } = props.game.worldMap;
-  const originX = ISO_DEBUG ? isoOriginX(height, tileDim) : 0;
-  const isoSize = ISO_DEBUG ? isoViewportSize(width, height, tileDim) : null;
   const players = [...props.game.world.players.values()];
 
   // Zoom on the user’s avatar when it is created
