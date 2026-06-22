@@ -2,7 +2,6 @@ import { ConvexError, v } from 'convex/values';
 import {
   DatabaseReader,
   MutationCtx,
-  env,
   internalAction,
   internalMutation,
   mutation,
@@ -105,7 +104,11 @@ export const maybeFreezeForUsageGuard = internalMutation({
     expectedGenerationNumber: v.number(),
   },
   handler: async (ctx, args) => {
-    const enabled = env.CONVEX_USAGE_GUARD === 'true';
+    // Read directly from process.env (the existing convention in this codebase).
+    // A typed `env` from convex.config.ts would inject `process.env` at the top of
+    // _generated/server.js, which the frontend bundles transitively and which then
+    // throws `process is not defined` in the browser.
+    const enabled = process.env.CONVEX_USAGE_GUARD === 'true';
     const worldStatus = await loadWorldStatus(ctx.db, args.worldId);
     const decision = usageGuardDecision({
       enabled,
