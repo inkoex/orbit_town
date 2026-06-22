@@ -6,6 +6,7 @@ import { modules } from '../test.modules';
 import { internal } from '../_generated/api';
 import { INPUT_RETENTION_MS } from '../constants';
 import type { Id } from '../_generated/dataModel';
+import { engineInsertInput } from './abstractGame';
 
 const TWO_HOURS = 2 * 60 * 60 * 1000;
 const THIRTY_MINUTES = 30 * 60 * 1000;
@@ -63,5 +64,28 @@ describe('vacuumProcessedInputsPage', () => {
       expect(await ctx.db.get(unprocessedOld)).not.toBeNull();
       expect(await ctx.db.get(processedRecent)).not.toBeNull();
     });
+  });
+});
+
+describe('engineInsertInput', () => {
+  test('assigns numbers above processedInputNumber after vacuum empties the table', async () => {
+    const t = convexTest(schema, modules);
+    let assignedNumber!: number;
+    await t.run(async (ctx) => {
+      const engineId = await ctx.db.insert('engines', {
+        generationNumber: 1,
+        running: true,
+        processedInputNumber: 1808,
+      });
+      // Post-vacuum state: every processed row was deleted, so the inputs table
+      // is empty even though the engine has already advanced to number 1808.
+      const inputId = await engineInsertInput(ctx, engineId, 'finishDoSomething', {});
+      const input = await ctx.db.get(inputId);
+      assignedNumber = input!.number;
+    });
+    // Regression (a729fd4): the prevInput-based counter restarted at 0 here,
+    // and the step loop's gt('number', processedInputNumber) cursor would skip
+    // those inputs forever, freezing every agent on a timed-out operation.
+    expect(assignedNumber).toBeGreaterThan(1808);
   });
 });

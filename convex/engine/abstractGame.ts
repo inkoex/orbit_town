@@ -142,7 +142,14 @@ export async function engineInsertInput(
     .withIndex('byInputNumber', (q) => q.eq('engineId', engineId))
     .order('desc')
     .first();
-  const number = prevInput ? prevInput.number + 1 : 0;
+  // Input numbers must stay strictly above the engine's processedInputNumber,
+  // which the step loop uses as a `gt('number', ...)` cursor. vacuumInputs can
+  // delete every processed row, leaving the table empty; without this floor the
+  // prevInput-based counter would restart at 0 and emit numbers the engine has
+  // already advanced past, so those inputs would never be read.
+  const engine = await ctx.db.get(engineId);
+  const floor = engine?.processedInputNumber ?? -1;
+  const number = Math.max(prevInput?.number ?? -1, floor) + 1;
   const inputId = await ctx.db.insert('inputs', {
     engineId,
     number,
