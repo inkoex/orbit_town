@@ -492,14 +492,14 @@ Expected: three search terms found.
 
 ---
 
-### Task 9: 60분 통합 검증과 아이소 작업 게이트
+### Task 9: 10분 통합 스모크 검증과 아이소 작업 게이트
 
 **Files:**
 - Modify: `docs/operations/convex-storage-verification.md`
 
 **Interfaces:**
 - Consumes: Tasks 1-8
-- Produces: measured PASS/FAIL record
+- Produces: 10-minute measured PASS/FAIL record and hourly growth estimate
 
 - [ ] **Step 1: 자동 검증을 다시 실행한다**
 
@@ -515,31 +515,31 @@ Expected: 0 failed, 0 TypeScript errors, build exits 0.
 
 초기화한 deployment에서 Database Storage, Database I/O, Function Calls, export archive bytes를 UTC timestamp와 함께 기록한다. export ZIP에서 `inputs`, `worlds`, `worldRenderStates`, `messages`, `memories`, `memoryEmbeddings`의 `documents.jsonl` uncompressed bytes를 각각 기록한다. `_scheduled_functions`는 CLI 표본 1,000개의 row 수와 출력 bytes를 별도 기록한다.
 
-- [ ] **Step 3: 6 AI + 1 사용자로 60분 실행한다**
+- [ ] **Step 3: 6 AI + 1 사용자로 10분 실행한다**
 
-10분 간격으로 사용자/AI 이동, 대화와 메시지, memory 생성/검색을 확인한다. browser 종료 후 5분 내 inactive stop, 수동 unfreeze 후 새 60분 timer 시작도 확인한다.
+2분 간격으로 사용자/AI 이동과 대화/메시지 동작을 확인한다. 테스트 중 생성된 memory가 있으면 생성/검색도 확인한다. 10분 측정이 끝난 뒤 browser를 종료하고 5분 내 inactive stop을 확인한다. 60분 usage guard 자동 freeze는 이 스모크 게이트 범위에서 제외하고 최종 운영 검증에서 확인한다.
 
 - [ ] **Step 4: 종료 측정값을 기록한다**
 
-Database Storage와 export 증가량, 위 여섯 application table의 개별 byte delta, `_scheduled_functions` 표본 row/byte delta, 정기 checkpoint 횟수, 이벤트 checkpoint 횟수, scheduled args 최대 bytes와 map 포함 여부, usage guard freeze timestamp를 기록한다. 성공/실패와 무관하게 모든 항목을 채운다.
+Database Storage와 export 증가량, 위 여섯 application table의 개별 byte delta, `_scheduled_functions` 표본 row/byte delta, 정기 checkpoint 횟수, 이벤트 checkpoint 횟수, scheduled args 최대 bytes와 map 포함 여부를 기록한다. 각 storage delta에 `6`을 곱한 시간당 추정치도 함께 기록한다. 성공/실패와 무관하게 모든 항목을 채운다.
 
 - [ ] **Step 5: 게이트를 판정한다**
 
 ```text
-Database Storage delta <= 20 MB
-regular checkpoint calls <= 120/hour
+Database Storage delta <= 3.33 MB / 10 minutes
+extrapolated Database Storage growth <= 20 MB / hour
+regular checkpoint calls <= 20 / 10 minutes
 scheduled agent payload contains map == false
 movement/chat/memory regression == false
-usage guard froze at 60 minutes == true
 ```
 
-하나라도 실패하면 아이소 계획을 실행하지 않고 테이블별 증가량과 함수별 Database I/O를 “재측정 필요” 절에 기록한다.
+하나라도 실패하면 아이소 계획을 실행하지 않고 테이블별 증가량과 함수별 Database I/O를 “재측정 필요” 절에 기록한다. 이 10분 게이트를 통과하면 아이소 수직 조각을 진행할 수 있지만, 배포 전에는 별도로 60분 운영 검증을 실행해 hourly extrapolation과 usage guard freeze를 최종 확인한다.
 
 - [ ] **Step 6: 검증 기록을 커밋한다**
 
 ```bash
 git add docs/operations/convex-storage-verification.md
-git commit -m "test: record Convex sixty minute storage verification"
+git commit -m "test: record Convex ten minute storage smoke verification"
 ```
 
 ---
