@@ -17,17 +17,25 @@ crons.interval('restart dead worlds', { seconds: 60 }, internal.world.restartDea
 
 crons.daily('vacuum old entries', { hourUTC: 4, minuteUTC: 20 }, internal.crons.vacuumOldEntries);
 
+// Processed inputs grow without bound, so vacuum them on a much tighter schedule
+// than the 14-day generic sweep, keying off `received` and the engine's
+// processed cursor rather than `_creationTime`.
+crons.interval(
+  'vacuum processed inputs',
+  { hours: 1 },
+  internal.engine.vacuumInputs.startVacuumProcessedInputs,
+  {},
+);
+
 export default crons;
 
 const TablesToVacuum: TableNames[] = [
   // Un-comment this to also clean out old conversations.
   // 'conversationMembers', 'conversations', 'messages',
 
-  // Inputs aren't useful unless you're trying to replay history.
-  // If you want to support that, you should add a snapshot table, so you can
-  // replay from a certain time period. Or stop vacuuming inputs and replay from
-  // the beginning of time
-  'inputs',
+  // NOTE: `inputs` is intentionally not vacuumed here. Processed inputs are
+  // cleaned hourly by `vacuumInputs.startVacuumProcessedInputs`, which also
+  // guarantees it never deletes inputs the engine has not yet processed.
 
   // We can keep memories without their embeddings for inspection, but we won't
   // retrieve them when searching memories via vector search.
