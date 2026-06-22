@@ -76,6 +76,9 @@ type WorldRenderState = {
 ```
 
 - 갱신 주기: 1초
+- 최초 스냅샷은 `insert`, 이후에는 변경 필드만 `patch`
+- `patch`도 Convex 문서 revision을 생성하므로 갱신 방식 자체를 저장량 해결책으로 간주하지 않음
+- 저장량 제한의 핵심은 world당 문서 1개, 고정된 필드, map·대화·기억을 제외한 작은 payload 유지
 - map, description, plan, identity, conversation transcript는 포함하지 않음
 - 프론트엔드는 권위 world 데이터와 렌더 스냅샷을 결합
 - 오래된 engine generation의 스냅샷은 무시
