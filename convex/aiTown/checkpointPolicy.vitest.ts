@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { checkpointFingerprint, shouldCheckpoint } from './checkpointPolicy';
+import { checkpointFingerprint, shouldCheckpoint, toCheckpoint } from './checkpointPolicy';
 import { CHECKPOINT_INTERVAL_MS } from '../constants';
 import type { SerializedWorld } from './world';
 
@@ -75,6 +75,20 @@ describe('checkpointFingerprint', () => {
     const moreMessages = baseWorld();
     moreMessages.conversations[0].numMessages = 4;
     expect(checkpointFingerprint(moreMessages)).not.toBe(base);
+  });
+});
+
+describe('toCheckpoint', () => {
+  test('excludes historicalLocations from the authoritative checkpoint', () => {
+    const world: SerializedWorld = {
+      ...baseWorld(),
+      historicalLocations: [{ playerId: 'p:1', location: new ArrayBuffer(8) }],
+    };
+    const checkpoint = toCheckpoint(world);
+    expect('historicalLocations' in checkpoint).toBe(false);
+    // The rest of the authoritative state is preserved.
+    expect(checkpoint.players.map((p) => p.id).sort()).toEqual(['p:1', 'p:2']);
+    expect(checkpoint.nextId).toBe(world.nextId);
   });
 });
 

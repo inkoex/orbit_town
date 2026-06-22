@@ -108,6 +108,10 @@ export const runStep = internalAction({
         await sleep(sleepUntil - now);
         now = Date.now();
       }
+      // Force a full authoritative checkpoint before yielding the action. Only
+      // schedule the next action if the checkpoint committed; on a generation
+      // mismatch this throws and is handled below without rescheduling.
+      await game.finishAction(ctx);
       await ctx.scheduler.runAfter(0, internal.aiTown.main.runStep, {
         worldId: args.worldId,
         generationNumber: game.engine.generationNumber,

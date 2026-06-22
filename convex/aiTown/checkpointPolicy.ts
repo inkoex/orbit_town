@@ -28,6 +28,14 @@ export function checkpointFingerprint(world: SerializedWorld): string {
   return JSON.stringify({ nextId: world.nextId, players, agents, conversations });
 }
 
+// The authoritative checkpoint never carries historicalLocations: that
+// high-churn interpolation data is delivered by the render snapshot instead, so
+// excluding it keeps the recovery checkpoint small.
+export function toCheckpoint(world: SerializedWorld): SerializedWorld {
+  const { historicalLocations: _omit, ...rest } = world;
+  return rest;
+}
+
 export function shouldCheckpoint(args: {
   now: number;
   lastCheckpointAt: number;
