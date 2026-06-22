@@ -103,6 +103,28 @@ npm run dev:frontend
 npm run dev:backend
 ```
 
+#### Local-first development (recommended for iterating)
+
+The simulation writes high-frequency state to Convex. To avoid filling a Free-plan
+cloud deployment while iterating, prefer a **local** Convex backend:
+
+```bash
+npx convex dev --local
+npm run dev:frontend
+```
+
+If you do run a long session against a **cloud** dev deployment, enable the usage
+guard so an unattended browser doesn't keep the engine running forever. It freezes
+the world after 60 minutes; manually resuming starts a fresh 60-minute window:
+
+```bash
+npx convex env set CONVEX_USAGE_GUARD true
+```
+
+Leave `CONVEX_USAGE_GUARD` unset (or `false`) in production. See
+[docs/operations/convex-storage-verification.md](docs/operations/convex-storage-verification.md)
+for the storage migration and 60-minute verification runbook.
+
 See [package.json](./package.json) for details.
 
 ### Using Docker Compose with self-hosted Convex
