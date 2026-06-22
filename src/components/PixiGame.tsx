@@ -15,6 +15,9 @@ import { DebugPath } from './DebugPath.tsx';
 import { PositionIndicator } from './PositionIndicator.tsx';
 import { SHOW_DEBUG_UI } from './Game.tsx';
 import { ServerGame } from '../hooks/serverGame.ts';
+import { ISO_DEBUG } from '../config/debug';
+import { isoOriginX, isoViewportSize, isoScreenToWorld, isoWorldToScreen } from '../utils/isoCoords';
+import { IsoDebugGrid } from './IsoDebugGrid.tsx';
 
 export const PixiGame = (props: {
   worldId: Id<'worlds'>;
@@ -68,7 +71,9 @@ export const PixiGame = (props: {
     }
     const gameSpacePx = viewport.toWorld(e.screenX, e.screenY);
     const tileDim = props.game.worldMap.tileDim;
-    const gameSpaceTiles = screenToWorld(gameSpacePx, tileDim);
+    const gameSpaceTiles = ISO_DEBUG
+      ? isoScreenToWorld(gameSpacePx, tileDim, originX)
+      : screenToWorld(gameSpacePx, tileDim);
     setLastDestination({ t: Date.now(), ...gameSpaceTiles });
     const roundedTiles = {
       x: Math.floor(gameSpaceTiles.x),
@@ -78,6 +83,8 @@ export const PixiGame = (props: {
     await toastOnError(moveTo({ playerId: humanPlayerId, destination: roundedTiles }));
   };
   const { width, height, tileDim } = props.game.worldMap;
+  const originX = ISO_DEBUG ? isoOriginX(height, tileDim) : 0;
+  const isoSize = ISO_DEBUG ? isoViewportSize(width, height, tileDim) : null;
   const players = [...props.game.world.players.values()];
 
   // Zoom on the user’s avatar when it is created
@@ -85,7 +92,9 @@ export const PixiGame = (props: {
     if (!viewportRef.current || humanPlayerId === undefined) return;
 
     const humanPlayer = props.game.world.players.get(humanPlayerId)!;
-    const initScreenPos = worldToScreen(humanPlayer.position, tileDim);
+    const initScreenPos = ISO_DEBUG
+      ? isoWorldToScreen(humanPlayer.position, tileDim, originX)
+      : worldToScreen(humanPlayer.position, tileDim);
     viewportRef.current.animate({
       position: new PIXI.Point(initScreenPos.x, initScreenPos.y),
       scale: 1.5,
@@ -97,24 +106,37 @@ export const PixiGame = (props: {
       app={pixiApp}
       screenWidth={props.width}
       screenHeight={props.height}
-      worldWidth={width * tileDim}
-      worldHeight={height * tileDim}
+      worldWidth={isoSize ? isoSize.width : width * tileDim}
+      worldHeight={isoSize ? isoSize.height : height * tileDim}
       viewportRef={viewportRef}
     >
-      <PixiStaticMap
-        map={props.game.worldMap}
-        onpointerup={onMapPointerUp}
-        onpointerdown={onMapPointerDown}
-      />
-      {players.map(
+      {ISO_DEBUG ? (
+        <IsoDebugGrid
+          width={width}
+          height={height}
+          tileDim={tileDim}
+          onpointerup={onMapPointerUp}
+          onpointerdown={onMapPointerDown}
+        />
+      ) : (
+        <PixiStaticMap
+          map={props.game.worldMap}
+          onpointerup={onMapPointerUp}
+          onpointerdown={onMapPointerDown}
+        />
+      )}
+      {!ISO_DEBUG && players.map(
         (p) =>
           // Only show the path for the human player in non-debug mode.
           (SHOW_DEBUG_UI || p.id === humanPlayerId) && (
             <DebugPath key={`path-${p.id}`} player={p} tileDim={tileDim} />
           ),
       )}
-      {lastDestination && <PositionIndicator destination={lastDestination} tileDim={tileDim} />}
-      {players.map((p) => (
+      {!ISO_DEBUG && lastDestination && <PositionIndicator destination={lastDestination} tileDim={tileDim} />}
+      {(ISO_DEBUG
+        ? [...players].sort((a, b) => (a.position.x + a.position.y) - (b.position.x + b.position.y))
+        : players
+      ).map((p) => (
         <Player
           key={`player-${p.id}`}
           game={props.game}
@@ -122,6 +144,7 @@ export const PixiGame = (props: {
           isViewer={p.id === humanPlayerId}
           onClick={props.setSelectedElement}
           historicalTime={props.historicalTime}
+          originX={originX}
         />
       ))}
     </PixiViewport>

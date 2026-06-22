@@ -1,4 +1,5 @@
 import { Character } from './Character.tsx';
+import { Graphics } from '@pixi/react';
 import { orientationDegrees } from '../../convex/util/geometry.ts';
 import { characters } from '../../data/characters.ts';
 import { worldToScreenCenter } from '../utils/coords';
@@ -11,6 +12,10 @@ import { useHistoricalValue } from '../hooks/useHistoricalValue.ts';
 import { PlayerDescription } from '../../convex/aiTown/playerDescription.ts';
 import { WorldMap } from '../../convex/aiTown/worldMap.ts';
 import { ServerGame } from '../hooks/serverGame.ts';
+import { ISO_DEBUG } from '../config/debug';
+import { isoWorldToScreenCenter } from '../utils/isoCoords';
+
+const PLAYER_COLORS = [0x22d3ee, 0x4ade80, 0xfbbf24, 0xf87171, 0xa78bfa, 0xfb923c];
 
 export type SelectElement = (element?: { kind: 'player'; id: GameId<'players'> }) => void;
 
@@ -22,13 +27,14 @@ export const Player = ({
   player,
   onClick,
   historicalTime,
+  originX = 0,
 }: {
   game: ServerGame;
   isViewer: boolean;
   player: ServerPlayer;
-
   onClick: SelectElement;
   historicalTime?: number;
+  originX?: number;
 }) => {
   const playerCharacter = game.playerDescriptions.get(player.id)?.character;
   if (!playerCharacter) {
@@ -53,6 +59,32 @@ export const Player = ({
 
   if (!historicalLocation) {
     return null;
+  }
+
+  if (ISO_DEBUG) {
+    const tileDim = game.worldMap.tileDim;
+    const { x: cx, y: cy } = isoWorldToScreenCenter(historicalLocation, tileDim, originX);
+    const colorIdx = Math.abs(
+      player.id.split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0)
+    ) % PLAYER_COLORS.length;
+    const color = PLAYER_COLORS[colorIdx];
+    return (
+      <Graphics
+        interactive
+        cursor="pointer"
+        pointerdown={() => onClick({ kind: 'player', id: player.id })}
+        draw={(g) => {
+          g.clear();
+          g.beginFill(color, 0.9);
+          g.drawCircle(cx, cy, tileDim / 3);
+          g.endFill();
+          if (isViewer) {
+            g.lineStyle(2, 0xffffff, 0.8);
+            g.drawCircle(cx, cy, tileDim / 3 + 3);
+          }
+        }}
+      />
+    );
   }
 
   const isSpeaking = !![...game.world.conversations.values()].find(
