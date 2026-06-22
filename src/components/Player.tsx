@@ -96,12 +96,13 @@ export const Player = ({
       (a) => a.playerId === player.id && !!a.inProgressOperation,
     );
   const tileDim = game.worldMap.tileDim;
+  const { x: centerX, y: centerY } = worldToScreenCenter(historicalLocation, tileDim);
   const historicalFacing = { dx: historicalLocation.dx, dy: historicalLocation.dy };
   return (
     <>
       <Character
-        x={worldToScreenCenter(historicalLocation, tileDim).x}
-        y={worldToScreenCenter(historicalLocation, tileDim).y}
+        x={centerX}
+        y={centerY}
         orientation={orientationDegrees(historicalFacing)}
         isMoving={historicalLocation.speed > 0}
         isThinking={isThinking}
