@@ -27,6 +27,9 @@ export const aiTownTables = {
     engineId: v.id('engines'),
     lastViewed: v.number(),
     status: v.union(v.literal('running'), v.literal('stoppedByDeveloper'), v.literal('inactive')),
+    // When the current development run started, used by the usage guard to freeze
+    // long-running dev worlds. Reset whenever the world is (re)started.
+    runStartedAt: v.optional(v.number()),
   }).index('worldId', ['worldId']),
 
   // This table contains the map data for a given world. Since it's a bit larger than the player

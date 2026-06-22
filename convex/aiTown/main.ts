@@ -1,11 +1,20 @@
 import { ConvexError, v } from 'convex/values';
-import { DatabaseReader, MutationCtx, internalAction, mutation, query } from '../_generated/server';
+import {
+  DatabaseReader,
+  MutationCtx,
+  env,
+  internalAction,
+  internalMutation,
+  mutation,
+  query,
+} from '../_generated/server';
 import { insertInput } from './insertInput';
 import { Game } from './game';
 import { internal } from '../_generated/api';
 import { sleep } from '../util/sleep';
 import { Id } from '../_generated/dataModel';
 import { ENGINE_ACTION_DURATION } from '../constants';
+import { usageGuardDecision } from './usageGuard';
 
 export async function createEngine(ctx: MutationCtx) {
   const now = Date.now();
@@ -29,7 +38,8 @@ async function loadWorldStatus(db: DatabaseReader, worldId: Id<'worlds'>) {
 }
 
 export async function startEngine(ctx: MutationCtx, worldId: Id<'worlds'>) {
-  const { engineId } = await loadWorldStatus(ctx.db, worldId);
+  const worldStatus = await loadWorldStatus(ctx.db, worldId);
+  const { engineId } = worldStatus;
   const engine = await ctx.db.get(engineId);
   if (!engine) {
     throw new Error(`Invalid engine ID: ${engineId}`);
@@ -38,6 +48,8 @@ export async function startEngine(ctx: MutationCtx, worldId: Id<'worlds'>) {
     throw new Error(`Engine ${engineId} isn't currently stopped`);
   }
   const now = Date.now();
+  // Start a fresh usage-guard window each time the world is (re)started.
+  await ctx.db.patch(worldStatus._id, { runStartedAt: now });
   const generationNumber = engine.generationNumber + 1;
   await ctx.db.patch(engineId, {
     // Forcibly advance time to the present. This does mean we'll skip
@@ -86,6 +98,35 @@ export async function stopEngine(ctx: MutationCtx, worldId: Id<'worlds'>) {
   await ctx.db.patch(engineId, { running: false });
 }
 
+export const maybeFreezeForUsageGuard = internalMutation({
+  args: {
+    worldId: v.id('worlds'),
+    engineId: v.id('engines'),
+    expectedGenerationNumber: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const enabled = env.CONVEX_USAGE_GUARD === 'true';
+    const worldStatus = await loadWorldStatus(ctx.db, args.worldId);
+    const decision = usageGuardDecision({
+      enabled,
+      now: Date.now(),
+      runStartedAt: worldStatus.runStartedAt,
+    });
+    if (decision !== 'freeze') {
+      return false;
+    }
+    const engine = await ctx.db.get(args.engineId);
+    // Don't freeze if a newer action has taken over this engine.
+    if (!engine || !engine.running || engine.generationNumber !== args.expectedGenerationNumber) {
+      return false;
+    }
+    console.log(`usage guard: froze world after 60 minutes`);
+    await ctx.db.patch(worldStatus._id, { status: 'stoppedByDeveloper' });
+    await ctx.db.patch(args.engineId, { running: false });
+    return true;
+  },
+});
+
 export const runStep = internalAction({
   args: {
     worldId: v.id('worlds'),
@@ -112,6 +153,16 @@ export const runStep = internalAction({
       // schedule the next action if the checkpoint committed; on a generation
       // mismatch this throws and is handled below without rescheduling.
       await game.finishAction(ctx);
+      // Development usage guard: freeze long-running dev worlds rather than let an
+      // unattended browser keep the engine running indefinitely.
+      const frozen: boolean = await ctx.runMutation(internal.aiTown.main.maybeFreezeForUsageGuard, {
+        worldId: args.worldId,
+        engineId: game.engine._id,
+        expectedGenerationNumber: game.engine.generationNumber,
+      });
+      if (frozen) {
+        return;
+      }
       await ctx.scheduler.runAfter(0, internal.aiTown.main.runStep, {
         worldId: args.worldId,
         generationNumber: game.engine.generationNumber,
