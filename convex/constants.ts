@@ -81,3 +81,11 @@ export const MAX_AGENTS = 8;
 export const AGENT_NAME_MAX = 32;
 export const AGENT_IDENTITY_MAX = 1000;
 export const AGENT_PLAN_MAX = 500;
+
+// Convex persistence stabilization.
+// How often the full authoritative `worlds` checkpoint is saved.
+export const CHECKPOINT_INTERVAL_MS = 30_000;
+// How long processed engine inputs are retained before being vacuumed.
+export const INPUT_RETENTION_MS = 60 * 60 * 1000;
+// How long a development world may run before the usage guard freezes it.
+export const USAGE_GUARD_LIMIT_MS = 60 * 60 * 1000;
