@@ -53,6 +53,7 @@ body {
 .game-title {
   background: linear-gradient(to bottom, #a5f3fc, #06b6d4);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: none;
   letter-spacing: 0.08em;
