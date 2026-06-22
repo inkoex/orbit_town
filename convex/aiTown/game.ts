@@ -371,10 +371,18 @@ export class Game extends AbstractGame {
           checkpoint: toCheckpoint(this.world.serialize()),
         });
       } catch (forceErr) {
+        // A control-flow error here means a newer action superseded us: bail
+        // without stopping the (now newer) engine.
+        if (isControlFlowError(forceErr)) {
+          throw forceErr;
+        }
         console.error(`Forced checkpoint also failed: ${errorMessage(forceErr)}`);
       }
       await ctx.runMutation(internal.aiTown.game.stopEngineForFailure, {
         engineId: this.engine._id,
+        // The generation this action still owns (the last committed one), not the
+        // already-incremented in-memory value, so we never stop a superseding run.
+        expectedGenerationNumber: payload.engineUpdate.expectedGenerationNumber,
       });
       throw e;
     }
@@ -564,10 +572,17 @@ export const finishWorldAction = internalMutation({
 });
 
 export const stopEngineForFailure = internalMutation({
-  args: { engineId: v.id('engines') },
+  args: { engineId: v.id('engines'), expectedGenerationNumber: v.number() },
   handler: async (ctx, args) => {
     const engine = await ctx.db.get(args.engineId);
-    if (engine && engine.running) {
+    // Only stop the engine if it is still the generation this action owned. A
+    // superseding action bumps generationNumber, and stopping then would kill the
+    // newer run.
+    if (
+      engine &&
+      engine.running &&
+      engine.generationNumber === args.expectedGenerationNumber
+    ) {
       await ctx.db.patch(args.engineId, { running: false });
     }
   },
