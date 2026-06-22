@@ -1,6 +1,7 @@
 import { Character } from './Character.tsx';
 import { orientationDegrees } from '../../convex/util/geometry.ts';
 import { characters } from '../../data/characters.ts';
+import { worldToScreenCenter } from '../utils/coords';
 import { toast } from 'react-toastify';
 import { Player as ServerPlayer } from '../../convex/aiTown/player.ts';
 import { GameId } from '../../convex/aiTown/ids.ts';
@@ -67,8 +68,8 @@ export const Player = ({
   return (
     <>
       <Character
-        x={historicalLocation.x * tileDim + tileDim / 2}
-        y={historicalLocation.y * tileDim + tileDim / 2}
+        x={worldToScreenCenter(historicalLocation, tileDim).x}
+        y={worldToScreenCenter(historicalLocation, tileDim).y}
         orientation={orientationDegrees(historicalFacing)}
         isMoving={historicalLocation.speed > 0}
         isThinking={isThinking}

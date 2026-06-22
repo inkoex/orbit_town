@@ -1,6 +1,7 @@
 import { PixiComponent, applyDefaultProps } from '@pixi/react';
 import * as PIXI from 'pixi.js';
 import { AnimatedSprite, WorldMap } from '../../convex/aiTown/worldMap';
+import { worldToScreen } from '../utils/coords';
 import * as campfire from '../../data/animations/campfire.json';
 import * as gentlesparkle from '../../data/animations/gentlesparkle.json';
 import * as gentlewaterfall from '../../data/animations/gentlewaterfall.json';
@@ -50,8 +51,7 @@ export const PixiStaticMap = PixiComponent('StaticMap', {
     for (let i = 0; i < screenxtiles * screenytiles; i++) {
       const x = i % screenxtiles;
       const y = Math.floor(i / screenxtiles);
-      const xPx = x * map.tileDim;
-      const yPx = y * map.tileDim;
+      const { x: xPx, y: yPx } = worldToScreen({ x, y }, map.tileDim);
 
       // Add all layers of backgrounds.
       for (const layer of allLayers) {

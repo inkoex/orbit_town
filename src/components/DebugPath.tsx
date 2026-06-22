@@ -1,6 +1,7 @@
 import { Graphics } from '@pixi/react';
 import { Graphics as PixiGraphics } from 'pixi.js';
 import { useCallback } from 'react';
+import { worldToScreenCenter } from '../utils/coords';
 import { Doc } from '../../convex/_generated/dataModel';
 import { Player } from '../../convex/aiTown/player';
 import { unpackPathComponent } from '../../convex/util/types';
@@ -16,8 +17,7 @@ export function DebugPath({ player, tileDim }: { player: Player; tileDim: number
       let first = true;
       for (const p of path) {
         const { position } = unpackPathComponent(p as any);
-        const x = position.x * tileDim + tileDim / 2;
-        const y = position.y * tileDim + tileDim / 2;
+        const { x, y } = worldToScreenCenter(position, tileDim);
         if (first) {
           g.moveTo(x, y);
           g.lineStyle(2, debugColor(player.id), 0.5);

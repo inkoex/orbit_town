@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import { useApp } from '@pixi/react';
 import { Player, SelectElement } from './Player.tsx';
+import { worldToScreen, screenToWorld } from '../utils/coords';
 import { useEffect, useRef, useState } from 'react';
 import { PixiStaticMap } from './PixiStaticMap.tsx';
 import PixiViewport from './PixiViewport.tsx';
@@ -67,10 +68,7 @@ export const PixiGame = (props: {
     }
     const gameSpacePx = viewport.toWorld(e.screenX, e.screenY);
     const tileDim = props.game.worldMap.tileDim;
-    const gameSpaceTiles = {
-      x: gameSpacePx.x / tileDim,
-      y: gameSpacePx.y / tileDim,
-    };
+    const gameSpaceTiles = screenToWorld(gameSpacePx, tileDim);
     setLastDestination({ t: Date.now(), ...gameSpaceTiles });
     const roundedTiles = {
       x: Math.floor(gameSpaceTiles.x),
@@ -87,8 +85,9 @@ export const PixiGame = (props: {
     if (!viewportRef.current || humanPlayerId === undefined) return;
 
     const humanPlayer = props.game.world.players.get(humanPlayerId)!;
+    const initScreenPos = worldToScreen(humanPlayer.position, tileDim);
     viewportRef.current.animate({
-      position: new PIXI.Point(humanPlayer.position.x * tileDim, humanPlayer.position.y * tileDim),
+      position: new PIXI.Point(initScreenPos.x, initScreenPos.y),
       scale: 1.5,
     });
   }, [humanPlayerId]);
