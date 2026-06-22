@@ -22,11 +22,12 @@
 
 ## 파일 구조
 
-- Create: `convex/aiTown/renderState.ts`, `convex/aiTown/renderState.test.ts`
-- Create: `convex/aiTown/checkpointPolicy.ts`, `convex/aiTown/checkpointPolicy.test.ts`
-- Create: `convex/aiTown/usageGuard.ts`, `convex/aiTown/usageGuard.test.ts`
-- Create: `convex/engine/vacuumInputs.ts`, `convex/engine/vacuumInputs.test.ts`
+- Create: `convex/aiTown/renderState.ts`, `convex/aiTown/renderState.vitest.ts`
+- Create: `convex/aiTown/checkpointPolicy.ts`, `convex/aiTown/checkpointPolicy.vitest.ts`
+- Create: `convex/aiTown/usageGuard.ts`, `convex/aiTown/usageGuard.vitest.ts`
+- Create: `convex/engine/vacuumInputs.ts`, `convex/engine/vacuumInputs.vitest.ts`
 - Create: `convex/convex.config.ts`, `convex/testModules.ts`, `vitest.config.ts`
+- Modify: `jest.config.ts`
 - Modify: `convex/aiTown/schema.ts`, `convex/engine/schema.ts`, `convex/schema.ts`
 - Modify: `convex/aiTown/game.ts`, `convex/aiTown/main.ts`, `convex/aiTown/agent.ts`, `convex/aiTown/agentOperations.ts`
 - Modify: `convex/engine/abstractGame.ts`, `convex/crons.ts`
@@ -36,14 +37,15 @@
 
 ---
 
-### Task 1: Convex 테스트 하네스와 체크포인트 정책
+### Task 1: Jest/Vitest 경계와 체크포인트 정책
 
 **Files:**
 - Create: `vitest.config.ts`
 - Create: `convex/testModules.ts`
 - Create: `convex/aiTown/checkpointPolicy.ts`
-- Create: `convex/aiTown/checkpointPolicy.test.ts`
+- Create: `convex/aiTown/checkpointPolicy.vitest.ts`
 - Modify: `package.json`
+- Modify: `jest.config.ts`
 - Modify: `convex/constants.ts`
 
 **Interfaces:**
@@ -74,7 +76,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'edge-runtime',
-    include: ['convex/**/*.test.ts'],
+    include: ['convex/**/*.vitest.ts'],
   },
 });
 ```
@@ -89,13 +91,22 @@ export const modules = import.meta.glob('./**/*.ts');
 
 DB function을 검증하는 테스트는 `convexTest(schema, modules)`를 사용한다. 순수 policy 테스트는 Vitest만 사용한다.
 
+`jest.config.ts`에는 기존 Jest 테스트를 유지하면서 Vitest 전용 파일을 명시적으로 제외한다.
+
+```typescript
+const jestConfig: JestConfigWithTsJest = {
+  preset: 'ts-jest/presets/default-esm',
+  testPathIgnorePatterns: ['/node_modules/', '[.]vitest[.]ts$'],
+};
+```
+
 - [ ] **Step 3: 실패 테스트를 작성한다**
 
-`checkpointPolicy.test.ts`에서 30초 경과와 구조 fingerprint 변경은 true, 29,999ms 경과와 동일 fingerprint는 false인지 검증한다. 위치, facing, speed, typing만 바꾼 두 world의 fingerprint는 같고 player/agent/conversation 구성이 바뀌면 달라야 한다.
+`checkpointPolicy.vitest.ts`에서 30초 경과와 구조 fingerprint 변경은 true, 29,999ms 경과와 동일 fingerprint는 false인지 검증한다. 위치, facing, speed, typing만 바꾼 두 world의 fingerprint는 같고 player/agent/conversation 구성이 바뀌면 달라야 한다.
 
 - [ ] **Step 4: 실패를 확인한다**
 
-Run: `npx vitest run convex/aiTown/checkpointPolicy.test.ts`
+Run: `npx vitest run convex/aiTown/checkpointPolicy.vitest.ts`
 
 Expected: FAIL with `Cannot find module './checkpointPolicy'`.
 
@@ -114,13 +125,14 @@ export const USAGE_GUARD_LIMIT_MS = 60 * 60 * 1000;
 - [ ] **Step 6: 검증하고 커밋한다**
 
 ```bash
-npx vitest run convex/aiTown/checkpointPolicy.test.ts
+npx jest --listTests
+npx vitest run convex/aiTown/checkpointPolicy.vitest.ts
 npx tsc --noEmit
-git add package.json package-lock.json vitest.config.ts convex/testModules.ts convex/constants.ts convex/aiTown/checkpointPolicy.ts convex/aiTown/checkpointPolicy.test.ts
+git add package.json package-lock.json jest.config.ts vitest.config.ts convex/testModules.ts convex/constants.ts convex/aiTown/checkpointPolicy.ts convex/aiTown/checkpointPolicy.vitest.ts
 git commit -m "test: add Convex persistence policy harness"
 ```
 
-Expected: named test PASS, TypeScript 0 errors.
+Expected: Jest list에 `.vitest.ts` 파일이 0개, named Vitest PASS, TypeScript 0 errors.
 
 ---
 
@@ -128,7 +140,7 @@ Expected: named test PASS, TypeScript 0 errors.
 
 **Files:**
 - Create: `convex/aiTown/renderState.ts`
-- Create: `convex/aiTown/renderState.test.ts`
+- Create: `convex/aiTown/renderState.vitest.ts`
 - Modify: `convex/aiTown/schema.ts`
 - Modify: `convex/schema.ts`
 - Modify: `convex/_generated/api.d.ts` (codegen 결과)
@@ -146,7 +158,7 @@ player 2명, typing conversation 1개, in-progress operation 1개 fixture로 pla
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `npx vitest run convex/aiTown/renderState.test.ts`
+Run: `npx vitest run convex/aiTown/renderState.vitest.ts`
 
 Expected: FAIL with missing module.
 
@@ -180,9 +192,9 @@ Expected: FAIL with missing module.
 
 ```bash
 npx convex codegen
-npx vitest run convex/aiTown/renderState.test.ts
+npx vitest run convex/aiTown/renderState.vitest.ts
 npx tsc --noEmit
-git add convex/aiTown/renderState.ts convex/aiTown/renderState.test.ts convex/aiTown/schema.ts convex/schema.ts convex/_generated/api.d.ts
+git add convex/aiTown/renderState.ts convex/aiTown/renderState.vitest.ts convex/aiTown/schema.ts convex/schema.ts convex/_generated/api.d.ts
 git commit -m "feat: add compact world render state"
 ```
 
@@ -196,7 +208,7 @@ Expected: renderState tests PASS, TypeScript 0 errors.
 - Modify: `convex/aiTown/game.ts`
 - Modify: `convex/aiTown/main.ts`
 - Modify: `convex/engine/abstractGame.ts`
-- Modify: `convex/aiTown/checkpointPolicy.test.ts`
+- Modify: `convex/aiTown/checkpointPolicy.vitest.ts`
 
 **Interfaces:**
 - Consumes: `shouldCheckpoint`, `upsertRenderState`
@@ -208,7 +220,7 @@ serialized checkpoint 결과에 `historicalLocations`가 없고 29,999ms에는 c
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `npx vitest run convex/aiTown/checkpointPolicy.test.ts`
+Run: `npx vitest run convex/aiTown/checkpointPolicy.vitest.ts`
 
 Expected: new historical location assertion FAIL.
 
@@ -242,7 +254,7 @@ type WorldStepPayload = {
 npm run test:all
 npx tsc --noEmit
 npm run build
-git add convex/aiTown/game.ts convex/aiTown/main.ts convex/engine/abstractGame.ts convex/aiTown/checkpointPolicy.test.ts
+git add convex/aiTown/game.ts convex/aiTown/main.ts convex/engine/abstractGame.ts convex/aiTown/checkpointPolicy.vitest.ts
 git commit -m "refactor: split render snapshots from world checkpoints"
 ```
 
@@ -296,7 +308,7 @@ Expected: merge tests PASS, TypeScript 0 errors, build exits 0.
 **Files:**
 - Modify: `convex/aiTown/agent.ts`
 - Modify: `convex/aiTown/agentOperations.ts`
-- Create: `convex/aiTown/agentOperations.test.ts`
+- Create: `convex/aiTown/agentOperations.vitest.ts`
 
 **Interfaces:**
 - Produces: scheduled args `{ worldId, player, agent, operationId }`
@@ -308,25 +320,25 @@ scheduled args JSON이 16KB 미만이고 `tilesetpath`, `bgtiles`, `objectTiles`
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `npx vitest run convex/aiTown/agentOperations.test.ts`
+Run: `npx vitest run convex/aiTown/agentOperations.vitest.ts`
 
 Expected: FAIL because current args contain map and candidates.
 
 - [ ] **Step 3: 예약 인자를 축소한다**
 
-`Agent.tick`은 map과 후보 배열을 scheduler args에서 제거한다. 작은 player/agent snapshot은 30초까지 stale한 checkpoint를 보완하기 위해 유지한다.
+`Agent.tick`은 map과 후보 배열을 scheduler args에서 제거한다. 작은 player/agent snapshot은 예약 시점의 acting agent 의사결정 상태(pathfinding, activity, cooldown)를 보존하는 권위 입력으로 유지한다.
 
 - [ ] **Step 4: 실행 시 context를 조회한다**
 
-`agentDoSomething` 시작 시 `loadAgentOperationContext`를 호출한다. query는 map을 읽고 checkpoint player에 최신 render position을 overlay한 뒤 conversation 참여 중이 아닌 후보만 반환한다. 결과 저장의 기존 `operationId` 검증은 유지한다.
+`agentDoSomething` 시작 시 `loadAgentOperationContext`를 호출한다. query는 map과 conversation 참여 중이 아닌 후보 player 목록만 반환하며 acting player/agent를 다시 조회하지 않는다. 후보 위치에는 최신 render position을 overlay한다. action은 예약 인자의 player/agent snapshot과 query의 map/candidates를 결합하고, 결과 저장의 기존 `operationId` 검증을 유지한다.
 
 - [ ] **Step 5: 검증하고 커밋한다**
 
 ```bash
-npx vitest run convex/aiTown/agentOperations.test.ts
+npx vitest run convex/aiTown/agentOperations.vitest.ts
 npm run test:all
 npx tsc --noEmit
-git add convex/aiTown/agent.ts convex/aiTown/agentOperations.ts convex/aiTown/agentOperations.test.ts
+git add convex/aiTown/agent.ts convex/aiTown/agentOperations.ts convex/aiTown/agentOperations.vitest.ts
 git commit -m "refactor: remove world map from scheduled agent payloads"
 ```
 
@@ -340,7 +352,7 @@ Expected: all tests PASS, TypeScript 0 errors.
 - Modify: `convex/engine/schema.ts`
 - Modify: `convex/crons.ts`
 - Create: `convex/engine/vacuumInputs.ts`
-- Create: `convex/engine/vacuumInputs.test.ts`
+- Create: `convex/engine/vacuumInputs.vitest.ts`
 
 **Interfaces:**
 - Produces: inputs index `by_received`
@@ -352,7 +364,7 @@ Expected: all tests PASS, TypeScript 0 errors.
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `npx vitest run convex/engine/vacuumInputs.test.ts`
+Run: `npx vitest run convex/engine/vacuumInputs.vitest.ts`
 
 Expected: FAIL because vacuum function is missing.
 
@@ -372,9 +384,9 @@ crons.interval(
 
 ```bash
 npx convex codegen
-npx vitest run convex/engine/vacuumInputs.test.ts
+npx vitest run convex/engine/vacuumInputs.vitest.ts
 npx tsc --noEmit
-git add convex/engine/schema.ts convex/engine/vacuumInputs.ts convex/engine/vacuumInputs.test.ts convex/crons.ts convex/_generated/api.d.ts
+git add convex/engine/schema.ts convex/engine/vacuumInputs.ts convex/engine/vacuumInputs.vitest.ts convex/crons.ts convex/_generated/api.d.ts
 git commit -m "feat: vacuum processed engine inputs after one hour"
 ```
 
@@ -387,7 +399,7 @@ Expected: all three retention cases PASS, TypeScript 0 errors.
 **Files:**
 - Create: `convex/convex.config.ts`
 - Create: `convex/aiTown/usageGuard.ts`
-- Create: `convex/aiTown/usageGuard.test.ts`
+- Create: `convex/aiTown/usageGuard.vitest.ts`
 - Modify: `convex/aiTown/schema.ts`
 - Modify: `convex/aiTown/main.ts`
 - Modify: `convex/init.ts`
@@ -403,7 +415,7 @@ enabled 상태에서 정확히 3,600,000ms면 freeze, disabled 상태에서는 7
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `npx vitest run convex/aiTown/usageGuard.test.ts`
+Run: `npx vitest run convex/aiTown/usageGuard.vitest.ts`
 
 Expected: FAIL with missing module.
 
@@ -432,11 +444,11 @@ init과 수동 unfreeze/start에서 `runStartedAt=Date.now()`를 patch한다. de
 
 ```bash
 npx convex codegen
-npx vitest run convex/aiTown/usageGuard.test.ts
+npx vitest run convex/aiTown/usageGuard.vitest.ts
 npm run test:all
 npx tsc --noEmit
 npm run build
-git add convex/convex.config.ts convex/aiTown/usageGuard.ts convex/aiTown/usageGuard.test.ts convex/aiTown/schema.ts convex/aiTown/main.ts convex/init.ts convex/testing.ts convex/_generated/api.d.ts
+git add convex/convex.config.ts convex/aiTown/usageGuard.ts convex/aiTown/usageGuard.vitest.ts convex/aiTown/schema.ts convex/aiTown/main.ts convex/init.ts convex/testing.ts convex/_generated/api.d.ts
 git commit -m "feat: freeze development worlds after sixty minutes"
 ```
 
@@ -465,6 +477,8 @@ npm run dev:frontend
 - [ ] **Step 2: 마이그레이션 순서를 기록한다**
 
 기존 deployment export와 Usage 캡처, schema/code 배포, 첫 render state 확인, 첫 checkpoint 후 `historicalLocations` 제거 확인, message/memory/description 보존 확인, scheduled args에서 map 부재 확인 순서로 작성한다.
+
+runbook에는 전후 export ZIP의 `<table>/documents.jsonl` uncompressed bytes를 비교하는 명령과 `npx convex data _scheduled_functions --limit 1000` 표본의 row/byte 수를 기록하는 절차를 포함한다.
 
 - [ ] **Step 3: 문서를 검증하고 커밋한다**
 
@@ -499,7 +513,7 @@ Expected: 0 failed, 0 TypeScript errors, build exits 0.
 
 - [ ] **Step 2: 초기 측정값을 기록한다**
 
-초기화한 deployment에서 Database Storage, Database I/O, Function Calls, export archive bytes를 UTC timestamp와 함께 기록한다.
+초기화한 deployment에서 Database Storage, Database I/O, Function Calls, export archive bytes를 UTC timestamp와 함께 기록한다. export ZIP에서 `inputs`, `worlds`, `worldRenderStates`, `messages`, `memories`, `memoryEmbeddings`의 `documents.jsonl` uncompressed bytes를 각각 기록한다. `_scheduled_functions`는 CLI 표본 1,000개의 row 수와 출력 bytes를 별도 기록한다.
 
 - [ ] **Step 3: 6 AI + 1 사용자로 60분 실행한다**
 
@@ -507,7 +521,7 @@ Expected: 0 failed, 0 TypeScript errors, build exits 0.
 
 - [ ] **Step 4: 종료 측정값을 기록한다**
 
-Database Storage와 export 증가량, 정기 checkpoint 횟수, 이벤트 checkpoint 횟수, scheduled args 최대 bytes와 map 포함 여부, usage guard freeze timestamp를 기록한다.
+Database Storage와 export 증가량, 위 여섯 application table의 개별 byte delta, `_scheduled_functions` 표본 row/byte delta, 정기 checkpoint 횟수, 이벤트 checkpoint 횟수, scheduled args 최대 bytes와 map 포함 여부, usage guard freeze timestamp를 기록한다. 성공/실패와 무관하게 모든 항목을 채운다.
 
 - [ ] **Step 5: 게이트를 판정한다**
 
@@ -537,3 +551,5 @@ git commit -m "test: record Convex sixty minute storage verification"
 - frontend generation fallback과 checkpoint 실패 시 다음 action 중단을 포함했다.
 - 사용자 메시지와 장기 기억 삭제는 포함하지 않았다.
 - 생성 함수와 테이블 이름을 후속 Task에서 일관되게 사용했다.
+- Jest는 기존 `*.test.ts`, Vitest는 Convex `*.vitest.ts`만 수집하도록 경계를 고정했다.
+- agent snapshot과 실행 시 조회 context의 책임을 분리하고, 성공 시에도 테이블별 저장량을 기록하도록 했다.
