@@ -207,7 +207,11 @@ export const worldState = query({
     if (!engine) {
       throw new Error(`Invalid engine ID: ${worldStatus.engineId}`);
     }
-    return { world, engine };
+    const renderState = await ctx.db
+      .query('worldRenderStates')
+      .withIndex('by_worldId', (q) => q.eq('worldId', world._id))
+      .unique();
+    return { world, engine, renderState };
   },
 });
 

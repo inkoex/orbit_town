@@ -8,12 +8,19 @@ import { useMemo } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { parseMap } from '../../convex/util/object.ts';
+import {
+  mergeRenderState,
+  renderThinkingPlayerIds,
+  renderTypingPlayerIds,
+} from './mergeRenderState.ts';
 
 export type ServerGame = {
   world: World;
   playerDescriptions: Map<GameId<'players'>, PlayerDescription>;
   agentDescriptions: Map<GameId<'agents'>, AgentDescription>;
   worldMap: WorldMap;
+  typingPlayerIds: Set<string>;
+  thinkingPlayerIds: Set<string>;
 };
 
 // TODO: This hook reparses the game state (even if we're not rerunning the query)
@@ -25,8 +32,11 @@ export function useServerGame(worldId: Id<'worlds'> | undefined): ServerGame | u
     if (!worldState || !descriptions) {
       return undefined;
     }
+    const engineGeneration = worldState.engine.generationNumber;
+    const renderState = worldState.renderState;
+    const world = mergeRenderState(new World(worldState.world), renderState, engineGeneration);
     return {
-      world: new World(worldState.world),
+      world,
       agentDescriptions: parseMap(
         descriptions.agentDescriptions,
         AgentDescription,
@@ -38,6 +48,8 @@ export function useServerGame(worldId: Id<'worlds'> | undefined): ServerGame | u
         (p) => p.playerId,
       ),
       worldMap: new WorldMap(descriptions.worldMap),
+      typingPlayerIds: renderTypingPlayerIds(world, renderState, engineGeneration),
+      thinkingPlayerIds: renderThinkingPlayerIds(world, renderState, engineGeneration),
     };
   }, [worldState, descriptions]);
   return game;

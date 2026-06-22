@@ -87,14 +87,11 @@ export const Player = ({
     );
   }
 
-  const isSpeaking = !![...game.world.conversations.values()].find(
-    (c) => c.isTyping?.playerId === player.id,
-  );
-  const isThinking =
-    !isSpeaking &&
-    !![...game.world.agents.values()].find(
-      (a) => a.playerId === player.id && !!a.inProgressOperation,
-    );
+  // Typing/thinking come from the fresh render snapshot (the checkpoint's
+  // conversation/agent state can be up to 30s stale); mergeRenderState falls back
+  // to the checkpoint when no current snapshot is available.
+  const isSpeaking = game.typingPlayerIds.has(player.id);
+  const isThinking = !isSpeaking && game.thinkingPlayerIds.has(player.id);
   const tileDim = game.worldMap.tileDim;
   const { x: centerX, y: centerY } = worldToScreenCenter(historicalLocation, tileDim);
   const historicalFacing = { dx: historicalLocation.dx, dy: historicalLocation.dy };
