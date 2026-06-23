@@ -12,8 +12,10 @@ import { useHistoricalValue } from '../hooks/useHistoricalValue.ts';
 import { PlayerDescription } from '../../convex/aiTown/playerDescription.ts';
 import { WorldMap } from '../../convex/aiTown/worldMap.ts';
 import { ServerGame } from '../hooks/serverGame.ts';
-import { ISO_DEBUG } from '../config/debug';
+import { ISO_DEBUG, VIEW_MODE } from '../config/debug';
 import { isoWorldToScreenCenter } from '../utils/isoCoords';
+import { IsoCharacter } from './isometric/IsoCharacter';
+import type { Projection } from '../rendering/projection/Projection';
 
 const PLAYER_COLORS = [0x22d3ee, 0x4ade80, 0xfbbf24, 0xf87171, 0xa78bfa, 0xfb923c];
 
@@ -28,6 +30,7 @@ export const Player = ({
   onClick,
   historicalTime,
   originX = 0,
+  isoProjection,
 }: {
   game: ServerGame;
   isViewer: boolean;
@@ -35,6 +38,7 @@ export const Player = ({
   onClick: SelectElement;
   historicalTime?: number;
   originX?: number;
+  isoProjection?: Projection;
 }) => {
   const playerCharacter = game.playerDescriptions.get(player.id)?.character;
   if (!playerCharacter) {
@@ -83,6 +87,21 @@ export const Player = ({
             g.drawCircle(cx, cy, tileDim / 3 + 3);
           }
         }}
+      />
+    );
+  }
+
+  if (VIEW_MODE === 'iso' && isoProjection) {
+    return (
+      <IsoCharacter
+        role={isViewer ? 'human' : 'agent'}
+        position={historicalLocation}
+        facing={{ dx: historicalLocation.dx, dy: historicalLocation.dy }}
+        speed={historicalLocation.speed}
+        simulationTime={historicalTime ?? Date.now()}
+        projection={isoProjection}
+        selected={isViewer}
+        onClick={() => onClick({ kind: 'player', id: player.id })}
       />
     );
   }

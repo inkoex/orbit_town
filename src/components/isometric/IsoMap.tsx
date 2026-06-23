@@ -7,12 +7,14 @@ interface Props {
   width: number;
   height: number;
   projection: Projection;
+  onpointerup?: (e: any) => void;
+  onpointerdown?: (e: any) => void;
 }
 
 // Floor is drawn in code (the Kenney pack is 3D blocks, not diamond tiles).
 // Each tile is the projected quad of its four world corners, so it works for
-// any Projection (iso here, but top-down too).
-export function IsoMap({ width, height, projection }: Props) {
+// any Projection. The filled quads double as the click hit-area for navigation.
+export function IsoMap({ width, height, projection, onpointerup, onpointerdown }: Props) {
   const draw = useCallback(
     (g: PIXI.Graphics) => {
       g.clear();
@@ -36,5 +38,7 @@ export function IsoMap({ width, height, projection }: Props) {
     [width, height, projection],
   );
 
-  return <Graphics draw={draw} />;
+  return (
+    <Graphics interactive draw={draw} onpointerup={onpointerup} onpointerdown={onpointerdown} />
+  );
 }

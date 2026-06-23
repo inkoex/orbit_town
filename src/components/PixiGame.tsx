@@ -2,7 +2,7 @@ import * as PIXI from 'pixi.js';
 import { useApp } from '@pixi/react';
 import { Player, SelectElement } from './Player.tsx';
 import { worldToScreen, screenToWorld } from '../utils/coords';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PixiStaticMap } from './PixiStaticMap.tsx';
 import PixiViewport from './PixiViewport.tsx';
 import { Viewport } from 'pixi-viewport';
@@ -15,9 +15,16 @@ import { DebugPath } from './DebugPath.tsx';
 import { PositionIndicator } from './PositionIndicator.tsx';
 import { SHOW_DEBUG_UI } from './Game.tsx';
 import { ServerGame } from '../hooks/serverGame.ts';
-import { ISO_DEBUG } from '../config/debug';
+import { ISO_DEBUG, VIEW_MODE } from '../config/debug';
 import { isoOriginX, isoViewportSize, isoScreenToWorld, isoWorldToScreen } from '../utils/isoCoords';
 import { IsoDebugGrid } from './IsoDebugGrid.tsx';
+import { Container } from '@pixi/react';
+import { createIsoProjection } from '../rendering/projection/isoProjection';
+import { IsoMap } from './isometric/IsoMap.tsx';
+import { IsoMapObject } from './isometric/IsoMapObject.tsx';
+import { isWalkableTile } from '../rendering/isWalkableTile';
+import { isoObjects } from '../../data/isoVerticalSlice';
+import { ISO_OBJECTS } from '../../data/assets/isoSliceManifest';
 
 export const PixiGame = (props: {
   worldId: Id<'worlds'>;
@@ -40,8 +47,29 @@ export const PixiGame = (props: {
   const moveTo = useSendInput(props.engineId, 'moveTo');
 
   const { width, height, tileDim } = props.game.worldMap;
+  const isoMode = VIEW_MODE === 'iso';
+  // iso projection for the live game: floor is drawn in code, characters and
+  // objects are textured. Metrics are provisional and tuned visually in Task 8.
+  const ISO_TILE_W = 64;
+  const ISO_TILE_H = 32;
+  const isoProjection = useMemo(
+    () =>
+      isoMode
+        ? createIsoProjection({
+            tileWidth: ISO_TILE_W,
+            tileHeight: ISO_TILE_H,
+            originX: height * (ISO_TILE_W / 2) + ISO_TILE_W / 2,
+            originY: ISO_TILE_H / 2,
+          })
+        : null,
+    [isoMode, height],
+  );
   const originX = ISO_DEBUG ? isoOriginX(height, tileDim) : 0;
-  const isoSize = ISO_DEBUG ? isoViewportSize(width, height, tileDim) : null;
+  const isoSize = ISO_DEBUG
+    ? isoViewportSize(width, height, tileDim)
+    : isoMode && isoProjection
+      ? isoProjection.viewportSize(width, height)
+      : null;
 
   // Interaction for clicking on the world to navigate.
   const dragStart = useRef<{ screenX: number; screenY: number } | null>(null);
@@ -77,7 +105,13 @@ export const PixiGame = (props: {
     const tileDim = props.game.worldMap.tileDim;
     const gameSpaceTiles = ISO_DEBUG
       ? isoScreenToWorld(gameSpacePx, tileDim, originX)
-      : screenToWorld(gameSpacePx, tileDim);
+      : isoMode && isoProjection
+        ? isoProjection.screenToWorld(gameSpacePx)
+        : screenToWorld(gameSpacePx, tileDim);
+    // In iso mode, ignore clicks on non-walkable tiles (walls/furniture/edges).
+    if (isoMode && !isWalkableTile(props.game.worldMap, gameSpaceTiles)) {
+      return;
+    }
     setLastDestination({ t: Date.now(), ...gameSpaceTiles });
     const roundedTiles = {
       x: Math.floor(gameSpaceTiles.x),
@@ -95,7 +129,9 @@ export const PixiGame = (props: {
     const humanPlayer = props.game.world.players.get(humanPlayerId)!;
     const initScreenPos = ISO_DEBUG
       ? isoWorldToScreen(humanPlayer.position, tileDim, originX)
-      : worldToScreen(humanPlayer.position, tileDim);
+      : isoMode && isoProjection
+        ? isoProjection.worldToScreen(humanPlayer.position)
+        : worldToScreen(humanPlayer.position, tileDim);
     viewportRef.current.animate({
       position: new PIXI.Point(initScreenPos.x, initScreenPos.y),
       scale: 1.5,
@@ -112,42 +148,90 @@ export const PixiGame = (props: {
       viewportRef={viewportRef}
     >
       {ISO_DEBUG ? (
-        <IsoDebugGrid
-          width={width}
-          height={height}
-          tileDim={tileDim}
-          onpointerup={onMapPointerUp}
-          onpointerdown={onMapPointerDown}
-        />
+        <>
+          <IsoDebugGrid
+            width={width}
+            height={height}
+            tileDim={tileDim}
+            onpointerup={onMapPointerUp}
+            onpointerdown={onMapPointerDown}
+          />
+          {[...players]
+            .sort((a, b) => a.position.x + a.position.y - (b.position.x + b.position.y))
+            .map((p) => (
+              <Player
+                key={`player-${p.id}`}
+                game={props.game}
+                player={p}
+                isViewer={p.id === humanPlayerId}
+                onClick={props.setSelectedElement}
+                historicalTime={props.historicalTime}
+                originX={originX}
+              />
+            ))}
+        </>
+      ) : isoMode && isoProjection ? (
+        <>
+          <IsoMap
+            width={width}
+            height={height}
+            projection={isoProjection}
+            onpointerup={onMapPointerUp}
+            onpointerdown={onMapPointerDown}
+          />
+          {/* Walls, furniture and characters share one sortable container so
+              they occlude each other by isoDepthKey (e.g. behind the desk). */}
+          <Container sortableChildren>
+            {isoObjects.map((o, i) => (
+              <IsoMapObject
+                key={`obj-${i}`}
+                tile={o.tile}
+                asset={ISO_OBJECTS[o.asset]}
+                layer={o.layer}
+                projection={isoProjection}
+              />
+            ))}
+            {players.map((p) => (
+              <Player
+                key={`player-${p.id}`}
+                game={props.game}
+                player={p}
+                isViewer={p.id === humanPlayerId}
+                onClick={props.setSelectedElement}
+                historicalTime={props.historicalTime}
+                isoProjection={isoProjection}
+              />
+            ))}
+          </Container>
+        </>
       ) : (
-        <PixiStaticMap
-          map={props.game.worldMap}
-          onpointerup={onMapPointerUp}
-          onpointerdown={onMapPointerDown}
-        />
+        <>
+          <PixiStaticMap
+            map={props.game.worldMap}
+            onpointerup={onMapPointerUp}
+            onpointerdown={onMapPointerDown}
+          />
+          {players.map(
+            (p) =>
+              (SHOW_DEBUG_UI || p.id === humanPlayerId) && (
+                <DebugPath key={`path-${p.id}`} player={p} tileDim={tileDim} />
+              ),
+          )}
+          {lastDestination && (
+            <PositionIndicator destination={lastDestination} tileDim={tileDim} />
+          )}
+          {players.map((p) => (
+            <Player
+              key={`player-${p.id}`}
+              game={props.game}
+              player={p}
+              isViewer={p.id === humanPlayerId}
+              onClick={props.setSelectedElement}
+              historicalTime={props.historicalTime}
+            />
+          ))}
+        </>
       )}
-      {!ISO_DEBUG && players.map(
-        (p) =>
-          // Only show the path for the human player in non-debug mode.
-          (SHOW_DEBUG_UI || p.id === humanPlayerId) && (
-            <DebugPath key={`path-${p.id}`} player={p} tileDim={tileDim} />
-          ),
-      )}
-      {!ISO_DEBUG && lastDestination && <PositionIndicator destination={lastDestination} tileDim={tileDim} />}
-      {(ISO_DEBUG
-        ? [...players].sort((a, b) => (a.position.x + a.position.y) - (b.position.x + b.position.y))
-        : players
-      ).map((p) => (
-        <Player
-          key={`player-${p.id}`}
-          game={props.game}
-          player={p}
-          isViewer={p.id === humanPlayerId}
-          onClick={props.setSelectedElement}
-          historicalTime={props.historicalTime}
-          originX={originX}
-        />
-      ))}
     </PixiViewport>
   );
 };
