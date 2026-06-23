@@ -188,16 +188,28 @@ export class Player {
       }
     }
     let position;
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const candidate = {
-        x: Math.floor(Math.random() * game.worldMap.width),
-        y: Math.floor(Math.random() * game.worldMap.height),
-      };
-      if (blocked(game, now, candidate)) {
-        continue;
+    // Prefer a configured spawn anchor (iso-slice map): the human at
+    // spawnPoints.human, the first AI at spawnPoints.agents[0]. Maps without
+    // spawnPoints, or an already-occupied anchor, fall back to random search.
+    const spawn = game.worldMap.spawnPoints;
+    if (spawn) {
+      const anchor = tokenIdentifier ? spawn.human : spawn.agents[0];
+      if (anchor && !blocked(game, now, anchor)) {
+        position = anchor;
       }
-      position = candidate;
-      break;
+    }
+    if (!position) {
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const candidate = {
+          x: Math.floor(Math.random() * game.worldMap.width),
+          y: Math.floor(Math.random() * game.worldMap.height),
+        };
+        if (blocked(game, now, candidate)) {
+          continue;
+        }
+        position = candidate;
+        break;
+      }
     }
     if (!position) {
       throw new Error(`Failed to find a free position!`);

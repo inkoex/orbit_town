@@ -1,9 +1,13 @@
-export type WorldTheme = 'folk' | 'space';
+export type WorldTheme = 'folk' | 'space' | 'iso-slice';
 
 export function resolveTheme(raw: string | undefined): WorldTheme {
-  return raw === 'space' ? 'space' : 'folk';
+  if (raw === 'space') return 'space';
+  if (raw === 'iso-slice') return 'iso-slice';
+  return 'folk';
 }
 
 export function themeFromTileSetUrl(url: string): WorldTheme {
-  return url.includes('space-tiles') ? 'space' : 'folk';
+  if (url.includes('iso-slice')) return 'iso-slice';
+  if (url.includes('space-tiles')) return 'space';
+  return 'folk';
 }

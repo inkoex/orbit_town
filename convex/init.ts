@@ -1,9 +1,10 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { DatabaseReader, MutationCtx, mutation } from './_generated/server';
-import { folkDescriptions, spaceDescriptions } from '../data/characters';
+import { folkDescriptions, spaceDescriptions, isoDescriptions } from '../data/characters';
 import * as gentleMap from '../data/gentle';
 import * as spaceMap from '../data/space';
+import * as isoSliceMap from '../data/isoVerticalSlice';
 import { insertInput } from './aiTown/insertInput';
 import { Id } from './_generated/dataModel';
 import { createEngine } from './aiTown/main';
@@ -12,8 +13,14 @@ import { detectMismatchedLLMProvider } from './util/llm';
 import { resolveTheme } from './util/theme';
 
 const theme = resolveTheme(process.env.WORLD_THEME);
-const map = theme === 'space' ? spaceMap : gentleMap;
-const Descriptions = theme === 'space' ? spaceDescriptions : folkDescriptions;
+const map =
+  theme === 'space' ? spaceMap : theme === 'iso-slice' ? isoSliceMap : gentleMap;
+const Descriptions =
+  theme === 'space'
+    ? spaceDescriptions
+    : theme === 'iso-slice'
+      ? isoDescriptions
+      : folkDescriptions;
 
 const init = mutation({
   args: {
@@ -39,7 +46,9 @@ const init = mutation({
         const createArgs =
           theme === 'space'
             ? { custom: spaceDescriptions[i % spaceDescriptions.length] }
-            : { descriptionIndex: i % folkDescriptions.length };
+            : theme === 'iso-slice'
+              ? { custom: isoDescriptions[i % isoDescriptions.length] }
+              : { descriptionIndex: i % folkDescriptions.length };
         await insertInput(ctx, worldStatus.worldId, 'createAgent', createArgs);
       }
     }
@@ -87,6 +96,7 @@ async function getOrCreateDefaultWorld(ctx: MutationCtx) {
     bgTiles: map.bgtiles,
     objectTiles: map.objmap,
     animatedSprites: map.animatedsprites,
+    ...('spawnPoints' in map ? { spawnPoints: map.spawnPoints } : {}),
   });
   await ctx.scheduler.runAfter(0, internal.aiTown.main.runStep, {
     worldId,

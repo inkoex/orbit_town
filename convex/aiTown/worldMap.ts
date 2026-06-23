@@ -1,4 +1,5 @@
 import { Infer, ObjectType, v } from 'convex/values';
+import { Point, point } from '../util/types';
 
 // `layer[position.x][position.y]` is the tileIndex or -1 if empty.
 const tileLayer = v.array(v.array(v.number()));
@@ -29,6 +30,14 @@ export const serializedWorldMap = {
   bgTiles: v.array(v.array(v.array(v.number()))),
   objectTiles: v.array(tileLayer),
   animatedSprites: v.array(v.object(animatedSprite)),
+  // Optional spawn anchors. iso-slice sets these; folk/space maps omit them and
+  // fall back to random free-position placement in Player.join.
+  spawnPoints: v.optional(
+    v.object({
+      human: point,
+      agents: v.array(point),
+    }),
+  ),
 };
 export type SerializedWorldMap = ObjectType<typeof serializedWorldMap>;
 
@@ -45,6 +54,7 @@ export class WorldMap {
   bgTiles: TileLayer[];
   objectTiles: TileLayer[];
   animatedSprites: AnimatedSprite[];
+  spawnPoints?: { human: Point; agents: Point[] };
 
   constructor(serialized: SerializedWorldMap) {
     this.width = serialized.width;
@@ -56,6 +66,7 @@ export class WorldMap {
     this.bgTiles = serialized.bgTiles;
     this.objectTiles = serialized.objectTiles;
     this.animatedSprites = serialized.animatedSprites;
+    this.spawnPoints = serialized.spawnPoints;
   }
 
   serialize(): SerializedWorldMap {
@@ -69,6 +80,7 @@ export class WorldMap {
       bgTiles: this.bgTiles,
       objectTiles: this.objectTiles,
       animatedSprites: this.animatedSprites,
+      spawnPoints: this.spawnPoints,
     };
   }
 }
