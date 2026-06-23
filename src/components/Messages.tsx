@@ -99,7 +99,7 @@ export function Messages({
         membershipNodes.push({
           node: (
             <div key={`joined-${playerId}`} className="leading-tight mb-6">
-              <p className="text-brown-300 text-center">{playerName} joined the conversation.</p>
+              <p className="text-brown-300 text-center">{playerName}님이 대화에 참여했습니다.</p>
             </div>
           ),
           time: started,
@@ -114,7 +114,7 @@ export function Messages({
       membershipNodes.push({
         node: (
           <div key={`joined-${playerId}`} className="leading-tight mb-6">
-            <p className="text-brown-300 text-center">{playerName} joined the conversation.</p>
+            <p className="text-brown-300 text-center">{playerName}님이 대화에 참여했습니다.</p>
           </div>
         ),
         time: started,
@@ -123,7 +123,7 @@ export function Messages({
       membershipNodes.push({
         node: (
           <div key={`left-${playerId}`} className="leading-tight mb-6">
-            <p className="text-brown-300 text-center">{playerName} left the conversation.</p>
+            <p className="text-brown-300 text-center">{playerName}님이 대화를 떠났습니다.</p>
           </div>
         ),
         // Always sort all "left" messages after the last message.

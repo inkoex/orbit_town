@@ -43,8 +43,8 @@ export async function rememberConversation(
     {
       role: 'user',
       content: `You are ${player.name}, and you just finished a conversation with ${otherPlayer.name}. I would
-      like you to summarize the conversation from ${player.name}'s perspective, using first-person pronouns like
-      "I," and add if you liked or disliked this interaction.`,
+      like you to summarize the conversation from ${player.name}'s perspective in the first person, and add
+      whether you liked or disliked this interaction. Write the summary in natural, conversational Korean (한국어).`,
     },
   ];
   const authors = new Set<GameId<'players'>>();
@@ -62,9 +62,9 @@ export async function rememberConversation(
     messages: llmMessages,
     max_tokens: 500,
   });
-  const description = `Conversation with ${otherPlayer.name} at ${new Date(
+  const description = `${otherPlayer.name}와(과)의 대화 (${new Date(
     data.conversation._creationTime,
-  ).toLocaleString()}: ${content}`;
+  ).toLocaleString()}): ${content}`;
   const importance = await calculateImportance(description);
   const { embedding } = await fetchEmbedding(description);
   authors.delete(player.id as GameId<'players'>);
@@ -351,7 +351,9 @@ async function reflectOnMemories(
   memories.forEach((m, idx) => {
     prompt.push(`Statement ${idx}: ${m.description}`);
   });
-  prompt.push('What 3 high-level insights can you infer from the above statements?');
+  prompt.push(
+    'What 3 high-level insights can you infer from the above statements? Write each insight value in Korean (한국어).',
+  );
   prompt.push(
     'Return in JSON format, where the key is a list of input statements that contributed to your insights and value is your insight. Make the response parseable by Typescript JSON.parse() function. DO NOT escape characters or include "\n" or white space in response.',
   );

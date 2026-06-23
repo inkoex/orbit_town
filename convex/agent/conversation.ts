@@ -10,6 +10,14 @@ import { NUM_MEMORIES_TO_SEARCH } from '../constants';
 
 const selfInternal = internal.agent.conversation;
 
+// Avatar dialogue is generated in Korean. The surrounding instructions, character
+// identities, and memories stay in English (as authored) and serve only as
+// context; the actual spoken reply must be Korean.
+const LANGUAGE_INSTRUCTION =
+  'Write your reply in natural, conversational Korean (한국어). Even though these ' +
+  'instructions, the character details, and any memories are written in English, ' +
+  'your actual spoken message must be written in Korean.';
+
 export async function startConversationMessage(
   ctx: ActionCtx,
   worldId: Id<'worlds'>,
@@ -52,6 +60,7 @@ export async function startConversationMessage(
       `Be sure to include some detail or question about a previous conversation in your greeting.`,
     );
   }
+  prompt.push(LANGUAGE_INSTRUCTION);
   const lastPrompt = `${player.name} to ${otherPlayer.name}:`;
   prompt.push(lastPrompt);
 
@@ -107,6 +116,7 @@ export async function continueConversationMessage(
   prompt.push(
     `Below is the current chat history between you and ${otherPlayer.name}.`,
     `DO NOT greet them again. Do NOT use the word "Hey" too often. Your response should be brief and within 200 characters.`,
+    LANGUAGE_INSTRUCTION,
   );
 
   const llmMessages: LLMMessage[] = [
@@ -157,6 +167,7 @@ export async function leaveConversationMessage(
   prompt.push(
     `Below is the current chat history between you and ${otherPlayer.name}.`,
     `How would you like to tell them that you're leaving? Your response should be brief and within 200 characters.`,
+    LANGUAGE_INSTRUCTION,
   );
   const llmMessages: LLMMessage[] = [
     {
