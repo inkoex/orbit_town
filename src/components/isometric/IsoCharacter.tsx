@@ -1,10 +1,11 @@
 import { Container, Sprite, Graphics } from '@pixi/react';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 import type { Projection } from '../../rendering/projection/Projection';
 import { ISO_CHARACTER_FRAMES, CHARACTER_FOOT_ANCHOR } from '../../../data/assets/isoSliceManifest';
-import { facingToIsoDirection, walkFrameAt } from './orientation';
+import { facingToIsoDirection, walkFrameAt, type IsoDirection } from './orientation';
 import { isoDepthKey } from './isoDepth';
+import type { ActiveState } from './activeState';
 
 interface Props {
   role: 'human' | 'agent';
@@ -14,11 +15,23 @@ interface Props {
   simulationTime: number;
   projection: Projection;
   selected?: boolean;
+  // The legibility payload: 'active' agents read as lit/full, 'idle' as dimmed.
+  activeState?: ActiveState;
   onClick?: () => void;
 }
 
 const SPRITE_W = 256;
 const SPRITE_H = 512;
+
+// Kenney character sprites render ~90 degrees to the left of the travel
+// direction, so rotate the computed direction one step clockwise
+// (ne→se→sw→nw) to align the sprite with movement.
+const SPRITE_ROTATION: Record<IsoDirection, IsoDirection> = {
+  ne: 'se',
+  se: 'sw',
+  sw: 'nw',
+  nw: 'ne',
+};
 
 // A character anchored at its foot contact. The whole thing sits in one
 // Container whose zIndex (isoDepthKey) is sorted against walls/furniture in the
@@ -32,14 +45,24 @@ export function IsoCharacter({
   simulationTime,
   projection,
   selected,
+  activeState = 'active',
   onClick,
 }: Props) {
-  const dir = facingToIsoDirection(facing);
+  // Keep the previous direction as hysteresis so a jittering facing vector
+  // doesn't flip the sprite every frame near a diagonal boundary.
+  const prevDir = useRef<IsoDirection>('se');
+  const rawDir = facingToIsoDirection(facing, prevDir.current);
+  prevDir.current = rawDir;
+  const dir = SPRITE_ROTATION[rawDir];
   const frame = walkFrameAt(simulationTime, speed);
   const frames = ISO_CHARACTER_FRAMES[dir];
   const src = frame === 'idle' ? frames.idle : frames.walk[Number(frame.slice(-1))];
   const { x, y } = projection.worldToScreenCenter(position);
+  // Tint stays role-based (agent cyan / human white). idle is conveyed by alpha,
+  // NOT by overwriting the tint, so the role distinction survives.
   const tint = role === 'agent' ? 0x9fd8ff : 0xffffff;
+  const isActive = activeState !== 'idle';
+  const spriteAlpha = isActive ? 1 : 0.5;
 
   const drawRing = useCallback(
     (g: PIXI.Graphics) => {
@@ -51,8 +74,25 @@ export function IsoCharacter({
     [selected],
   );
 
+  // Active halo: a soft FILLED glow under the feet — deliberately distinct from
+  // the stroked selection ring so the two meanings never collide.
+  const drawActiveGlow = useCallback(
+    (g: PIXI.Graphics) => {
+      g.clear();
+      if (!isActive) return;
+      g.beginFill(0x22d3ee, 0.22);
+      g.drawEllipse(0, 0, 30, 15);
+      g.endFill();
+      g.beginFill(0x38e6ff, 0.16);
+      g.drawEllipse(0, 0, 18, 9);
+      g.endFill();
+    },
+    [isActive],
+  );
+
   return (
     <Container x={x} y={y} zIndex={isoDepthKey(position, 'object', 50)} sortableChildren>
+      <Graphics draw={drawActiveGlow} zIndex={-1} />
       <Graphics draw={drawRing} zIndex={0} />
       <Sprite
         image={src}
@@ -60,6 +100,7 @@ export function IsoCharacter({
         width={SPRITE_W}
         height={SPRITE_H}
         tint={tint}
+        alpha={spriteAlpha}
         zIndex={1}
         interactive
         cursor="pointer"

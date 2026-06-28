@@ -30,6 +30,13 @@ export function MessageInput({
   const onKeyDown = async (e: KeyboardEvent) => {
     e.stopPropagation();
 
+    // While an IME is composing (Korean/Japanese/etc.), Enter confirms the
+    // composition rather than submitting. Ignore it so the last composing
+    // character isn't sent as a duplicate message.
+    if (e.key === 'Enter' && e.nativeEvent.isComposing) {
+      return;
+    }
+
     // Set the typing indicator if we're not submitting.
     if (e.key !== 'Enter') {
       console.log(inflightUuid.current);

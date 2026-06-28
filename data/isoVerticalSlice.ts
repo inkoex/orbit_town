@@ -7,26 +7,11 @@ type Point = { x: number; y: number };
 const layer = (fill: number): number[][] =>
   Array.from({ length: 10 }, () => Array<number>(10).fill(fill));
 
-// -1 = walkable, 0 = blocked. Outer border (36 tiles) + furniture footprints.
+// -1 = walkable, 0 = blocked. The Kenney prototype furniture (orange "1 METER"
+// blockout cubes) was removed for the Antigravity look, so the whole 10x10
+// interior is now walkable. Out-of-map clicks are still rejected by
+// isWalkableTile (width/height bounds). Iso-native props come later, procedural.
 const collision = layer(-1);
-for (let x = 0; x < 10; x++) {
-  collision[x][0] = 0;
-  collision[x][9] = 0;
-}
-for (let y = 0; y < 10; y++) {
-  collision[0][y] = 0;
-  collision[9][y] = 0;
-}
-const FURNITURE: Array<[number, number]> = [
-  [4, 4],
-  [4, 5],
-  [5, 4],
-  [5, 5],
-  [7, 6],
-];
-for (const [x, y] of FURNITURE) {
-  collision[x][y] = 0;
-}
 
 export const tilesetpath = '/ai-town/assets/iso-slice/floor-metal.png';
 export const tiledim = 32;
@@ -56,26 +41,11 @@ export type IsoObjectSpec = {
 };
 
 const buildIsoObjects = (): IsoObjectSpec[] => {
-  const out: IsoObjectSpec[] = [];
-  // Rear-left wall (x = 0 edge), with a doorway opening.
-  for (let y = 0; y < 10; y++) {
-    out.push({ tile: { x: 0, y }, asset: y === 4 ? 'door' : 'wallBackLeft', layer: 'wall' });
-  }
-  // Rear-right wall (y = 0 edge), skipping the shared corner at (0,0).
-  for (let x = 1; x < 10; x++) {
-    out.push({ tile: { x, y: 0 }, asset: 'wallBackRight', layer: 'wall' });
-  }
-  // Furniture (desk 2x2 + console), matching collision footprints.
-  for (const [x, y] of [
-    [4, 4],
-    [4, 5],
-    [5, 4],
-    [5, 5],
-    [7, 6],
-  ] as Array<[number, number]>) {
-    out.push({ tile: { x, y }, asset: 'crate', layer: 'object' });
-  }
-  return out;
+  // No objects for now. The Kenney prototype crates/walls are orange "1 METER"
+  // blockout cubes — they can't read as iso furniture no matter the orientation,
+  // so they're removed (same reason the walls were). Iso-native props (glowing
+  // cyan pedestals/consoles) come later, drawn procedurally like the floor.
+  return [];
 };
 
 export const isoObjects: IsoObjectSpec[] = buildIsoObjects();

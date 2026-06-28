@@ -16,15 +16,14 @@ describe('isWalkableTile', () => {
     expect(isWalkableTile(map, { x: 3.6, y: 6.2 })).toBe(true);
   });
 
-  test('border tiles are blocked', () => {
-    expect(isWalkableTile(map, { x: 0, y: 0 })).toBe(false);
-    expect(isWalkableTile(map, { x: 0, y: 5 })).toBe(false);
-    expect(isWalkableTile(map, { x: 9, y: 9 })).toBe(false);
+  test('edge tiles are walkable now that border collision is gone', () => {
+    expect(isWalkableTile(map, { x: 0, y: 0 })).toBe(true);
+    expect(isWalkableTile(map, { x: 9, y: 9 })).toBe(true);
   });
 
-  test('furniture tiles are blocked', () => {
-    expect(isWalkableTile(map, { x: 4, y: 4 })).toBe(false);
-    expect(isWalkableTile(map, { x: 7, y: 6 })).toBe(false);
+  test('former furniture tiles are walkable now that prototype crates are removed', () => {
+    expect(isWalkableTile(map, { x: 4, y: 4 })).toBe(true);
+    expect(isWalkableTile(map, { x: 7, y: 6 })).toBe(true);
   });
 
   test('points outside the map are not walkable', () => {

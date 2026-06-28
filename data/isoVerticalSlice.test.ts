@@ -1,30 +1,16 @@
 import { mapwidth, mapheight, objmap, spawnPoints } from './isoVerticalSlice';
 
-const FURNITURE: Array<[number, number]> = [
-  [4, 4],
-  [4, 5],
-  [5, 4],
-  [5, 5],
-  [7, 6],
-];
-
 describe('iso vertical slice map', () => {
   test('is 10x10', () => {
     expect(mapwidth).toBe(10);
     expect(mapheight).toBe(10);
   });
 
-  test('border (36 outer tiles) and furniture are blocked, interior walkable', () => {
+  test('the entire 10x10 interior is walkable (prototype furniture removed)', () => {
     const collision = objmap[0];
     for (let x = 0; x < 10; x++) {
       for (let y = 0; y < 10; y++) {
-        const isBorder = x === 0 || y === 0 || x === 9 || y === 9;
-        const isFurniture = FURNITURE.some(([fx, fy]) => fx === x && fy === y);
-        if (isBorder || isFurniture) {
-          expect(collision[x][y]).toBe(0);
-        } else {
-          expect(collision[x][y]).toBe(-1);
-        }
+        expect(collision[x][y]).toBe(-1);
       }
     }
   });

@@ -10,9 +10,18 @@ export function facingToIsoDirection(
 ): IsoDirection {
   const { dx, dy } = facing;
   if (dx === 0 && dy === 0) return prev ?? 'se';
-  if (Math.abs(dx) >= Math.abs(dy)) {
-    return dx >= 0 ? 'se' : 'nw';
+  const ax = Math.abs(dx);
+  const ay = Math.abs(dy);
+  // Hysteresis: near a diagonal, keep the previous axis unless the other axis
+  // is clearly dominant (margin). Without this a jittering facing vector flips
+  // the sprite every frame at the se/sw/nw/ne boundaries.
+  if (prev) {
+    const margin = 1.3;
+    const prevIsX = prev === 'se' || prev === 'nw';
+    if (prevIsX && ay <= ax * margin) return dx >= 0 ? 'se' : 'nw';
+    if (!prevIsX && ax <= ay * margin) return dy >= 0 ? 'sw' : 'ne';
   }
+  if (ax >= ay) return dx >= 0 ? 'se' : 'nw';
   return dy >= 0 ? 'sw' : 'ne';
 }
 

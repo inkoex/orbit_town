@@ -17,6 +17,13 @@ describe('facingToIsoDirection', () => {
     expect(facingToIsoDirection({ dx: 0.9, dy: 0.2 })).toBe('se');
     expect(facingToIsoDirection({ dx: 0.2, dy: -0.9 })).toBe('ne');
   });
+
+  test('hysteresis keeps the previous axis until the other is clearly dominant', () => {
+    // prev se, y only slightly larger (within margin) → stays se
+    expect(facingToIsoDirection({ dx: 0.7, dy: 0.8 }, 'se')).toBe('se');
+    // prev se, y clearly dominant (beyond margin) → switches to sw
+    expect(facingToIsoDirection({ dx: 0.3, dy: 0.9 }, 'se')).toBe('sw');
+  });
 });
 
 describe('walkFrameAt', () => {

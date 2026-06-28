@@ -50,8 +50,10 @@ export const PixiGame = (props: {
   const isoMode = VIEW_MODE === 'iso';
   // iso projection for the live game: floor is drawn in code, characters and
   // objects are textured. Metrics are provisional and tuned visually in Task 8.
-  const ISO_TILE_W = 64;
-  const ISO_TILE_H = 32;
+  // Match the Kenney sprite footprint (256x512) so floor tiles and objects/
+  // characters share one scale. 2:1 diamond → height = width / 2.
+  const ISO_TILE_W = 256;
+  const ISO_TILE_H = 128;
   const isoProjection = useMemo(
     () =>
       isoMode
@@ -90,7 +92,14 @@ export const PixiGame = (props: {
       const [dx, dy] = [screenX - e.screenX, screenY - e.screenY];
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist > 10) {
-        console.log(`Skipping navigation on drag event (${dist}px)`);
+        console.log(
+          `[iso] drag skip ${dist.toFixed(0)}px — down`,
+          Math.round(screenX),
+          Math.round(screenY),
+          'up',
+          Math.round(e.screenX),
+          Math.round(e.screenY),
+        );
         return;
       }
     }
@@ -110,6 +119,14 @@ export const PixiGame = (props: {
         : screenToWorld(gameSpacePx, tileDim);
     // In iso mode, ignore clicks on non-walkable tiles (walls/furniture/edges).
     if (isoMode && !isWalkableTile(props.game.worldMap, gameSpaceTiles)) {
+      console.log(
+        '[iso] REJECTED not-walkable — px',
+        Math.round(gameSpacePx.x),
+        Math.round(gameSpacePx.y),
+        '→ tiles',
+        gameSpaceTiles.x.toFixed(2),
+        gameSpaceTiles.y.toFixed(2),
+      );
       return;
     }
     setLastDestination({ t: Date.now(), ...gameSpaceTiles });
@@ -134,7 +151,8 @@ export const PixiGame = (props: {
         : worldToScreen(humanPlayer.position, tileDim);
     viewportRef.current.animate({
       position: new PIXI.Point(initScreenPos.x, initScreenPos.y),
-      scale: 1.5,
+      // iso tiles are 256px wide, so start zoomed out to fit the room.
+      scale: isoMode ? 0.4 : 1.5,
     });
   }, [humanPlayerId]);
 

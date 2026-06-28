@@ -12,9 +12,10 @@ import { useHistoricalValue } from '../hooks/useHistoricalValue.ts';
 import { PlayerDescription } from '../../convex/aiTown/playerDescription.ts';
 import { WorldMap } from '../../convex/aiTown/worldMap.ts';
 import { ServerGame } from '../hooks/serverGame.ts';
-import { ISO_DEBUG, VIEW_MODE } from '../config/debug';
+import { ISO_DEBUG, ISO_STATE_DEBUG, VIEW_MODE } from '../config/debug';
 import { isoWorldToScreenCenter } from '../utils/isoCoords';
 import { IsoCharacter } from './isometric/IsoCharacter';
+import { deriveActiveState, debugActiveState } from './isometric/activeState';
 import type { Projection } from '../rendering/projection/Projection';
 
 const PLAYER_COLORS = [0x22d3ee, 0x4ade80, 0xfbbf24, 0xf87171, 0xa78bfa, 0xfb923c];
@@ -92,6 +93,18 @@ export const Player = ({
   }
 
   if (VIEW_MODE === 'iso' && isoProjection) {
+    // Active = a real busy signal right now (typing/thinking/moving/activity).
+    // ISO_STATE_DEBUG forces a deterministic split so the contrast is visible
+    // even when live data happens to be all-idle. Same signals the 2D path uses.
+    const activeState = ISO_STATE_DEBUG
+      ? debugActiveState(player.id)
+      : deriveActiveState({
+          isSpeaking: game.typingPlayerIds.has(player.id),
+          isThinking: game.thinkingPlayerIds.has(player.id),
+          isMoving: historicalLocation.speed > 0,
+          hasLiveActivity:
+            !!player.activity && player.activity.until > (historicalTime ?? Date.now()),
+        });
     return (
       <IsoCharacter
         role={isViewer ? 'human' : 'agent'}
@@ -101,6 +114,7 @@ export const Player = ({
         simulationTime={historicalTime ?? Date.now()}
         projection={isoProjection}
         selected={isViewer}
+        activeState={activeState}
         onClick={() => onClick({ kind: 'player', id: player.id })}
       />
     );

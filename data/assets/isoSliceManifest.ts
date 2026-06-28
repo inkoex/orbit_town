@@ -11,7 +11,8 @@ export type IsoAsset = {
 };
 
 const SPRITE = { width: 256, height: 512 };
-const BASE_ANCHOR = { x: 0.5, y: 0.85 };
+// Base contact = bottom diamond center of the crate cube (near sprite bottom).
+const BASE_ANCHOR = { x: 0.5, y: 0.92 };
 
 const obj = (file: string): IsoAsset => ({
   src: `/ai-town/assets/iso-slice/${file}`,
@@ -29,8 +30,12 @@ export const ISO_OBJECTS = {
 export type IsoDirection = 'se' | 'sw' | 'nw' | 'ne';
 export const ISO_DIRECTIONS: IsoDirection[] = ['se', 'sw', 'nw', 'ne'];
 
-// Foot contact for characters: bottom-center of the 256x512 sprite.
-export const CHARACTER_FOOT_ANCHOR = { x: 0.5, y: 0.82 };
+// Foot contact for characters. The figure occupies rows ~0.63–0.89 of the 512px
+// frame; the bottom-most foot pixel is ~0.89. We sit the anchor a hair above
+// that (0.88) so the ground point reads as the stance center (the feet are
+// splayed front/back) rather than the single lowest toe. (The old 0.82 left the
+// feet hanging ~36px below the tile center.)
+export const CHARACTER_FOOT_ANCHOR = { x: 0.5, y: 0.88 };
 
 const character = (dir: IsoDirection): { idle: string; walk: string[] } => ({
   idle: `/ai-town/assets/iso-slice/character-${dir}-idle.png`,
