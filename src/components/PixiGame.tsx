@@ -23,7 +23,7 @@ import { createIsoProjection } from '../rendering/projection/isoProjection';
 import { IsoMap } from './isometric/IsoMap.tsx';
 import { IsoMapObject } from './isometric/IsoMapObject.tsx';
 import { isWalkableTile } from '../rendering/isWalkableTile';
-import { isoObjects } from '../../data/isoVerticalSlice';
+import { isoObjects, PLATFORMS, BRIDGES } from '../../data/isoVerticalSlice';
 import { ISO_OBJECTS } from '../../data/assets/isoSliceManifest';
 
 export const PixiGame = (props: {
@@ -147,12 +147,13 @@ export const PixiGame = (props: {
     const initScreenPos = ISO_DEBUG
       ? isoWorldToScreen(humanPlayer.position, tileDim, originX)
       : isoMode && isoProjection
-        ? isoProjection.worldToScreen(humanPlayer.position)
+        ? // center on the archipelago middle so all islands are visible at once
+          isoProjection.worldToScreen({ x: width / 2, y: height / 2 })
         : worldToScreen(humanPlayer.position, tileDim);
     viewportRef.current.animate({
       position: new PIXI.Point(initScreenPos.x, initScreenPos.y),
-      // iso tiles are 256px wide, so start zoomed out to fit the room.
-      scale: isoMode ? 0.4 : 1.5,
+      // iso archipelago spans the whole map; start zoomed out to fit all islands.
+      scale: isoMode ? 0.22 : 1.5,
     });
   }, [humanPlayerId]);
 
@@ -193,6 +194,8 @@ export const PixiGame = (props: {
           <IsoMap
             width={width}
             height={height}
+            platforms={PLATFORMS}
+            bridges={BRIDGES}
             projection={isoProjection}
             onpointerup={onMapPointerUp}
             onpointerdown={onMapPointerDown}
