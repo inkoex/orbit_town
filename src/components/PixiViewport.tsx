@@ -14,6 +14,9 @@ export type ViewportProps = {
   screenHeight: number;
   worldWidth: number;
   worldHeight: number;
+  // Extra headroom ABOVE the world so the camera can pan up into the "sky"
+  // (where tall props like the iso billboard stand). 0 = clamp to the map box.
+  clampTop?: number;
   children?: ReactNode;
 };
 
@@ -36,7 +39,13 @@ export default PixiComponent('Viewport', {
       .pinch({})
       .wheel()
       .decelerate()
-      .clamp({ direction: 'all', underflow: 'center' })
+      .clamp({
+        left: 0,
+        right: props.worldWidth,
+        top: -(props.clampTop ?? 0),
+        bottom: props.worldHeight,
+        underflow: 'center',
+      })
       .setZoom(-10)
       .clampZoom({
         minScale: (1.04 * props.screenWidth) / (props.worldWidth / 2),
@@ -46,7 +55,13 @@ export default PixiComponent('Viewport', {
   },
   applyProps(viewport, oldProps: any, newProps: any) {
     Object.keys(newProps).forEach((p) => {
-      if (p !== 'app' && p !== 'viewportRef' && p !== 'children' && oldProps[p] !== newProps[p]) {
+      if (
+        p !== 'app' &&
+        p !== 'viewportRef' &&
+        p !== 'children' &&
+        p !== 'clampTop' &&
+        oldProps[p] !== newProps[p]
+      ) {
         // @ts-expect-error Ignoring TypeScript here
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         viewport[p] = newProps[p];

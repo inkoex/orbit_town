@@ -110,6 +110,36 @@ export function IsoMap({
     [platforms, projection],
   );
 
+  // Glowing pedestals: a couple of cyan pylons per platform. Decorative only
+  // (no collision), drawn below the agents so characters pass in front of them.
+  const drawProps = useCallback(
+    (g: PIXI.Graphics) => {
+      g.clear();
+      const pylon = (tx: number, ty: number) => {
+        const { x: cx, y: cy } = projection.worldToScreenCenter({ x: tx, y: ty });
+        const top = cy - 120;
+        g.beginFill(0x22d3ee, 0.16);
+        g.drawEllipse(cx, cy, 26, 13);
+        g.endFill();
+        g.lineStyle(11, 0x22d3ee, 0.1);
+        g.moveTo(cx, cy);
+        g.lineTo(cx, top);
+        g.lineStyle(3, 0x38e6ff, 0.9);
+        g.moveTo(cx, cy);
+        g.lineTo(cx, top);
+        g.lineStyle(0);
+        g.beginFill(0xbff7ff, 1);
+        g.drawCircle(cx, top, 6);
+        g.endFill();
+      };
+      for (const p of platforms) {
+        pylon(p.rect.x + 1, p.rect.y + 1);
+        pylon(p.rect.x + p.rect.w - 2, p.rect.y + p.rect.h - 2);
+      }
+    },
+    [platforms, projection],
+  );
+
   return (
     <Container>
       <Graphics
@@ -119,6 +149,7 @@ export function IsoMap({
         onpointerdown={onpointerdown}
       />
       <Graphics draw={drawRims} />
+      <Graphics draw={drawProps} />
       {platforms.map((p) => {
         const pos = projection.worldToScreenCenter({
           x: p.rect.x + p.rect.w / 2,

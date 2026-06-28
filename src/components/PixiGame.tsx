@@ -21,6 +21,7 @@ import { IsoDebugGrid } from './IsoDebugGrid.tsx';
 import { Container } from '@pixi/react';
 import { createIsoProjection } from '../rendering/projection/isoProjection';
 import { IsoMap } from './isometric/IsoMap.tsx';
+import { IsoBillboard } from './isometric/IsoBillboard.tsx';
 import { IsoMapObject } from './isometric/IsoMapObject.tsx';
 import { isWalkableTile } from '../rendering/isWalkableTile';
 import { isoObjects, PLATFORMS, BRIDGES } from '../../data/isoVerticalSlice';
@@ -139,23 +140,31 @@ export const PixiGame = (props: {
   };
   const players = [...props.game.world.players.values()];
 
-  // Zoom on the user’s avatar when it is created
+  // Frame the scene once. iso → fit the whole archipelago centered on the map,
+  // independent of any human player (the world may be agents-only). top-down →
+  // zoom onto the user's avatar once it is created.
+  const didInitCamera = useRef(false);
   useEffect(() => {
-    if (!viewportRef.current || humanPlayerId === undefined) return;
-
+    const viewport = viewportRef.current;
+    if (!viewport || didInitCamera.current) return;
+    if (isoMode && isoProjection) {
+      const c = isoProjection.worldToScreen({ x: width / 2, y: height / 2 });
+      // zoom out enough that all islands sit inside the canvas with margin.
+      viewport.animate({ position: new PIXI.Point(c.x, c.y), scale: 0.19 });
+      didInitCamera.current = true;
+      return;
+    }
+    if (humanPlayerId === undefined) return;
     const humanPlayer = props.game.world.players.get(humanPlayerId)!;
     const initScreenPos = ISO_DEBUG
       ? isoWorldToScreen(humanPlayer.position, tileDim, originX)
-      : isoMode && isoProjection
-        ? // center on the archipelago middle so all islands are visible at once
-          isoProjection.worldToScreen({ x: width / 2, y: height / 2 })
-        : worldToScreen(humanPlayer.position, tileDim);
-    viewportRef.current.animate({
+      : worldToScreen(humanPlayer.position, tileDim);
+    viewport.animate({
       position: new PIXI.Point(initScreenPos.x, initScreenPos.y),
-      // iso archipelago spans the whole map; start zoomed out to fit all islands.
-      scale: isoMode ? 0.22 : 1.5,
+      scale: 1.5,
     });
-  }, [humanPlayerId]);
+    didInitCamera.current = true;
+  }, [humanPlayerId, isoMode, isoProjection, width, height]);
 
   return (
     <PixiViewport
@@ -164,6 +173,7 @@ export const PixiGame = (props: {
       screenHeight={props.height}
       worldWidth={isoSize ? isoSize.width : width * tileDim}
       worldHeight={isoSize ? isoSize.height : height * tileDim}
+      clampTop={isoSize ? 890 : 0}
       viewportRef={viewportRef}
     >
       {ISO_DEBUG ? (
@@ -191,6 +201,7 @@ export const PixiGame = (props: {
         </>
       ) : isoMode && isoProjection ? (
         <>
+          <IsoBillboard projection={isoProjection} anchorTile={{ x: 2, y: -3.5 }} />
           <IsoMap
             width={width}
             height={height}
