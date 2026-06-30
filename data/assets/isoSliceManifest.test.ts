@@ -5,6 +5,7 @@ import {
   ISO_CHARACTER_FRAMES,
   ISO_DIRECTIONS,
   CHARACTER_FOOT_ANCHOR,
+  resolveAvatarFrames,
 } from './isoSliceManifest';
 
 const PUBLIC = path.join(process.cwd(), 'public');
@@ -36,5 +37,32 @@ describe('iso slice manifest', () => {
       expect(a.y).toBeGreaterThanOrEqual(0);
       expect(a.y).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+describe('resolveAvatarFrames', () => {
+  test('등록된 아바타는 그 아바타 폴더 경로를 돌려준다', () => {
+    const frames = resolveAvatarFrames('iso-agent');
+    expect(frames.se.idle).toContain('/iso-slice/iso-agent/');
+    expect(frames.se.walk).toHaveLength(4);
+    expect(frames.se.walk[2]).toContain('character-se-walk-2.png');
+  });
+
+  test('네 방향이 모두 있고 파일이 디스크에 존재한다', () => {
+    const frames = resolveAvatarFrames('iso-agent');
+    for (const d of ISO_DIRECTIONS) {
+      expect(frames[d].idle).toContain(`character-${d}-idle.png`);
+      for (const src of [frames[d].idle, ...frames[d].walk]) {
+        expect(fs.existsSync(resolve(src))).toBe(true);
+      }
+    }
+  });
+
+  test('미등록 아바타는 기본(fallback) 프레임으로 떨어진다', () => {
+    expect(resolveAvatarFrames('does-not-exist')).toBe(ISO_CHARACTER_FRAMES);
+  });
+
+  test('avatarId가 없으면 기본 프레임을 쓴다', () => {
+    expect(resolveAvatarFrames(undefined)).toBe(ISO_CHARACTER_FRAMES);
   });
 });

@@ -48,3 +48,32 @@ export const ISO_CHARACTER_FRAMES: Record<IsoDirection, { idle: string; walk: st
   nw: character('nw'),
   ne: character('ne'),
 };
+
+// Per-avatar frame sets: same filename rule, scoped to an avatarId subfolder.
+// Rendered by tools/avatar-render/ from a Kenney glb.
+const framesIn = (avatarId: string): Record<IsoDirection, { idle: string; walk: string[] }> => {
+  const dir = (d: IsoDirection) => ({
+    idle: `/ai-town/assets/iso-slice/${avatarId}/character-${d}-idle.png`,
+    walk: [0, 1, 2, 3].map(
+      (i) => `/ai-town/assets/iso-slice/${avatarId}/character-${d}-walk-${i}.png`,
+    ),
+  });
+  return { se: dir('se'), sw: dir('sw'), nw: dir('nw'), ne: dir('ne') };
+};
+
+// Asset Contract: runtime references avatarId only. Slice 1 maps the shared
+// 'iso-agent' character. (The theme dimension is deferred to slice 2 — paths are
+// pinned to the single 'iso-slice' theme for now.)
+export const AVATAR_REGISTRY: Record<
+  string,
+  Record<IsoDirection, { idle: string; walk: string[] }>
+> = {
+  'iso-agent': framesIn('iso-agent'),
+};
+
+// Unregistered avatarId falls back to the original single model (top-level paths).
+export function resolveAvatarFrames(
+  avatarId?: string,
+): Record<IsoDirection, { idle: string; walk: string[] }> {
+  return (avatarId && AVATAR_REGISTRY[avatarId]) || ISO_CHARACTER_FRAMES;
+}
