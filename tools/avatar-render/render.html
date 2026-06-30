@@ -22,13 +22,22 @@ key.position.set(2, 4, 3);
 scene.add(key);
 
 const aspect = W / H;
-const frustum = 2.2; // tune so the character fills vertically
+let frustum = 0.80;     // half-height of ortho view in world units (tuned for Kenney Mini)
+let lookY = 0.72;       // world-Y the camera aims at; higher => character lower in frame
+// iso: azimuth 45deg, elevation ~30deg (arctan(0.5)=26.57 is true 2:1)
 const cam = new THREE.OrthographicCamera(
   -frustum * aspect, frustum * aspect, frustum, -frustum, 0.1, 100,
 );
-// iso: azimuth 45deg, elevation ~30deg (arctan(0.5)=26.57 is true 2:1; tuned in spike)
 cam.position.set(6, 6 * Math.tan(THREE.MathUtils.degToRad(30)) * Math.SQRT2, 6);
-cam.lookAt(0, 1, 0);
+cam.lookAt(0, lookY, 0);
+
+// Runtime tuning: adjust zoom (frustum) + vertical framing (lookY) without editing the file.
+window.__setCam = (f, ly) => {
+  frustum = f; lookY = ly;
+  cam.left = -f * aspect; cam.right = f * aspect; cam.top = f; cam.bottom = -f;
+  cam.updateProjectionMatrix();
+  cam.lookAt(0, ly, 0);
+};
 
 const pivot = new THREE.Group(); // model goes here; yaw gives the 4 directions
 scene.add(pivot);
@@ -43,6 +52,7 @@ new GLTFLoader().load(
     const model = gltf.scene;
     const box = new THREE.Box3().setFromObject(model);
     model.position.y -= box.min.y; // feet at y=0
+    window.__modelHeight = box.max.y - box.min.y;
     pivot.add(model);
     window.__animCount = gltf.animations.length;
     window.__animNames = gltf.animations.map((a) => a.name);
