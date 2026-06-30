@@ -108,6 +108,7 @@ export const Player = ({
     return (
       <IsoCharacter
         role={isViewer ? 'human' : 'agent'}
+        avatarId={playerCharacter}
         position={historicalLocation}
         facing={{ dx: historicalLocation.dx, dy: historicalLocation.dy }}
         speed={historicalLocation.speed}
