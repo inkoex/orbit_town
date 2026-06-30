@@ -6,6 +6,7 @@ import { ISO_CHARACTER_FRAMES, CHARACTER_FOOT_ANCHOR } from '../../../data/asset
 import { facingToIsoDirection, walkFrameAt, type IsoDirection } from './orientation';
 import { isoDepthKey } from './isoDepth';
 import type { ActiveState } from './activeState';
+import { Pulse } from './AnimatedContainer';
 
 interface Props {
   role: 'human' | 'agent';
@@ -92,7 +93,10 @@ export function IsoCharacter({
 
   return (
     <Container x={x} y={y} zIndex={isoDepthKey(position, 'object', 50)} sortableChildren>
-      <Graphics draw={drawActiveGlow} zIndex={-1} />
+      {/* Active agents pulse their underfoot halo — a soft "working" heartbeat. */}
+      <Pulse periodMs={1900} min={0.45} max={1} zIndex={-1}>
+        <Graphics draw={drawActiveGlow} />
+      </Pulse>
       <Graphics draw={drawRing} zIndex={0} />
       <Sprite
         image={src}

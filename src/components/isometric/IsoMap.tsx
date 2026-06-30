@@ -3,6 +3,8 @@ import { useCallback } from 'react';
 import * as PIXI from 'pixi.js';
 import type { Projection } from '../../rendering/projection/Projection';
 import type { Platform, Rect } from '../../../data/isoVerticalSlice';
+import { Pulse, TickGraphics } from './AnimatedContainer';
+import { flowFractions } from './animation';
 
 interface Props {
   width: number;
@@ -140,6 +142,66 @@ export function IsoMap({
     [platforms, projection],
   );
 
+  // Energy flowing along each bridge: glowing motes drift from one island toward
+  // the next along the bridge centerline, so the archipelago reads as connected
+  // and powered. Redrawn per frame (a handful of dots) via the shared clock.
+  const drawBridgeFlow = useCallback(
+    (g: PIXI.Graphics, t: number) => {
+      g.clear();
+      for (const r of bridges) {
+        const horizontal = r.w >= r.h;
+        const start = horizontal
+          ? { x: r.x, y: r.y + r.h / 2 }
+          : { x: r.x + r.w / 2, y: r.y };
+        const end = horizontal
+          ? { x: r.x + r.w, y: r.y + r.h / 2 }
+          : { x: r.x + r.w / 2, y: r.y + r.h };
+        // One mote per ~1.4 tiles of span so long and short bridges feel alike.
+        const span = horizontal ? r.w : r.h;
+        const count = Math.max(2, Math.round(span / 1.4));
+        for (const f of flowFractions(t, 2600, count)) {
+          const p = projection.worldToScreen({
+            x: start.x + (end.x - start.x) * f,
+            y: start.y + (end.y - start.y) * f,
+          });
+          // Fade in and out at the ends so motes don't pop at the platforms.
+          const edge = Math.sin(f * Math.PI);
+          g.beginFill(RIM_CYAN_HOT, 0.18 * edge);
+          g.drawCircle(p.x, p.y, 9);
+          g.endFill();
+          g.beginFill(0xbff7ff, 0.9 * edge);
+          g.drawCircle(p.x, p.y, 3.5);
+          g.endFill();
+        }
+      }
+    },
+    [bridges, projection],
+  );
+
+  // Sparks rising up each pylon beam — the same two pylons per platform that
+  // drawProps plants, so particles and pedestal share a column.
+  const drawPylonParticles = useCallback(
+    (g: PIXI.Graphics, t: number) => {
+      g.clear();
+      const beam = (tx: number, ty: number, phaseTiles: number) => {
+        const { x: cx, y: cy } = projection.worldToScreenCenter({ x: tx, y: ty });
+        const top = cy - 120;
+        for (const f of flowFractions(t + phaseTiles, 1700, 3)) {
+          const py = cy + (top - cy) * f;
+          const a = (1 - f) * 0.9; // brightest at the base, fades as it climbs
+          g.beginFill(0xbff7ff, a);
+          g.drawCircle(cx, py, 3);
+          g.endFill();
+        }
+      };
+      for (const p of platforms) {
+        beam(p.rect.x + 1, p.rect.y + 1, 0);
+        beam(p.rect.x + p.rect.w - 2, p.rect.y + p.rect.h - 2, 850);
+      }
+    },
+    [platforms, projection],
+  );
+
   return (
     <Container>
       <Graphics
@@ -148,8 +210,16 @@ export function IsoMap({
         onpointerup={onpointerup}
         onpointerdown={onpointerdown}
       />
-      <Graphics draw={drawRims} />
-      <Graphics draw={drawProps} />
+      <TickGraphics render={drawBridgeFlow} />
+      {/* Rims and pylons breathe on slightly different periods so the
+          archipelago shimmers instead of pulsing in lockstep. */}
+      <Pulse periodMs={3400} min={0.55} max={1}>
+        <Graphics draw={drawRims} />
+      </Pulse>
+      <Pulse periodMs={2700} min={0.5} max={1} phase={0.3}>
+        <Graphics draw={drawProps} />
+      </Pulse>
+      <TickGraphics render={drawPylonParticles} />
       {platforms.map((p) => {
         const pos = projection.worldToScreenCenter({
           x: p.rect.x + p.rect.w / 2,
