@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset="utf-8" />
+<style>html,body{margin:0;background:transparent}#c{display:block}</style>
+<canvas id="c" width="256" height="512"></canvas>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const W = 256, H = 512;
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+renderer.setSize(W, H, false);
+renderer.setClearColor(0x000000, 0); // transparent
+
+const scene = new THREE.Scene();
+scene.add(new THREE.HemisphereLight(0xffffff, 0x444466, 1.1));
+const key = new THREE.DirectionalLight(0xffffff, 1.4);
+key.position.set(2, 4, 3);
+scene.add(key);
+
+const aspect = W / H;
+const frustum = 2.2; // tune so the character fills vertically
+const cam = new THREE.OrthographicCamera(
+  -frustum * aspect, frustum * aspect, frustum, -frustum, 0.1, 100,
+);
+// iso: azimuth 45deg, elevation ~30deg (arctan(0.5)=26.57 is true 2:1; tuned in spike)
+cam.position.set(6, 6 * Math.tan(THREE.MathUtils.degToRad(30)) * Math.SQRT2, 6);
+cam.lookAt(0, 1, 0);
+
+const pivot = new THREE.Group(); // model goes here; yaw gives the 4 directions
+scene.add(pivot);
+let mixer = null, walk = null;
+
+const params = new URLSearchParams(location.search);
+const url = params.get('glb');
+window.__animCount = -1;
+new GLTFLoader().load(
+  url,
+  (gltf) => {
+    const model = gltf.scene;
+    const box = new THREE.Box3().setFromObject(model);
+    model.position.y -= box.min.y; // feet at y=0
+    pivot.add(model);
+    window.__animCount = gltf.animations.length;
+    window.__animNames = gltf.animations.map((a) => a.name);
+    if (gltf.animations.length) {
+      mixer = new THREE.AnimationMixer(model);
+      walk = gltf.animations.find((a) => /walk|run/i.test(a.name)) || gltf.animations[0];
+      mixer.clipAction(walk).play();
+      window.__walkLen = walk.duration;
+    }
+    window.__renderReady = true;
+  },
+  undefined,
+  (err) => { window.__renderError = String(err); },
+);
+
+// dirIndex: 0=se,1=sw,2=nw,3=ne. animTime sec (walk phase). idle if animTime<0.
+window.__renderFrame = (dirIndex, animTime) => {
+  pivot.rotation.y = THREE.MathUtils.degToRad(45 + dirIndex * 90);
+  if (mixer) mixer.setTime(animTime < 0 ? 0 : animTime);
+  renderer.render(scene, cam);
+  return canvas.toDataURL('image/png');
+};
+</script>

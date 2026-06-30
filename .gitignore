@@ -45,3 +45,7 @@ convex_local*
 
 # Superpowers brainstorm artifacts
 .superpowers/
+.gstack/
+
+# avatar-render: raw Kenney source pack (CC0, re-download via tools/avatar-render/README.md)
+tools/avatar-render/_src/
