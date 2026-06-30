@@ -2,7 +2,7 @@ import { Container, Sprite, Graphics } from '@pixi/react';
 import { useCallback, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 import type { Projection } from '../../rendering/projection/Projection';
-import { ISO_CHARACTER_FRAMES, CHARACTER_FOOT_ANCHOR } from '../../../data/assets/isoSliceManifest';
+import { resolveAvatarFrames, CHARACTER_FOOT_ANCHOR } from '../../../data/assets/isoSliceManifest';
 import { facingToIsoDirection, walkFrameAt, type IsoDirection } from './orientation';
 import { isoDepthKey } from './isoDepth';
 import type { ActiveState } from './activeState';
@@ -10,6 +10,8 @@ import { Pulse } from './AnimatedContainer';
 
 interface Props {
   role: 'human' | 'agent';
+  // Which avatar frame set to render; falls back to the default model.
+  avatarId?: string;
   position: { x: number; y: number };
   facing: { dx: number; dy: number };
   speed: number;
@@ -40,6 +42,7 @@ const SPRITE_ROTATION: Record<IsoDirection, IsoDirection> = {
 // occluded. role is shown via tint (Kenney ships one Human model).
 export function IsoCharacter({
   role,
+  avatarId,
   position,
   facing,
   speed,
@@ -56,7 +59,7 @@ export function IsoCharacter({
   prevDir.current = rawDir;
   const dir = SPRITE_ROTATION[rawDir];
   const frame = walkFrameAt(simulationTime, speed);
-  const frames = ISO_CHARACTER_FRAMES[dir];
+  const frames = resolveAvatarFrames(avatarId)[dir];
   const src = frame === 'idle' ? frames.idle : frames.walk[Number(frame.slice(-1))];
   const { x, y } = projection.worldToScreenCenter(position);
   // Tint stays role-based (agent cyan / human white). idle is conveyed by alpha,
