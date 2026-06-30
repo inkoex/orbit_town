@@ -26,16 +26,6 @@ interface Props {
 const SPRITE_W = 256;
 const SPRITE_H = 512;
 
-// Kenney character sprites render ~90 degrees to the left of the travel
-// direction, so rotate the computed direction one step clockwise
-// (ne→se→sw→nw) to align the sprite with movement.
-const SPRITE_ROTATION: Record<IsoDirection, IsoDirection> = {
-  ne: 'se',
-  se: 'sw',
-  sw: 'nw',
-  nw: 'ne',
-};
-
 // A character anchored at its foot contact. The whole thing sits in one
 // Container whose zIndex (isoDepthKey) is sorted against walls/furniture in the
 // parent sortableChildren container, so a character walking behind the desk is
@@ -55,9 +45,11 @@ export function IsoCharacter({
   // Keep the previous direction as hysteresis so a jittering facing vector
   // doesn't flip the sprite every frame near a diagonal boundary.
   const prevDir = useRef<IsoDirection>('se');
-  const rawDir = facingToIsoDirection(facing, prevDir.current);
-  prevDir.current = rawDir;
-  const dir = SPRITE_ROTATION[rawDir];
+  // Avatar frames are rendered facing each travel direction directly (the render
+  // pipeline orients them correctly), so the iso direction maps straight to the
+  // frame set — no sprite rotation compensation needed.
+  const dir = facingToIsoDirection(facing, prevDir.current);
+  prevDir.current = dir;
   const frame = walkFrameAt(simulationTime, speed);
   const frames = resolveAvatarFrames(avatarId)[dir];
   const src = frame === 'idle' ? frames.idle : frames.walk[Number(frame.slice(-1))];

@@ -19,7 +19,12 @@ sleep 2
 ready=$($B --headed js "window.__renderReady||false")
 [ "$ready" = "true" ] || { echo "FAIL: render not ready (glb load failed?)"; exit 1; }
 
-DIRS=(se sw nw ne)
+# Tunable framing (FRUSTUM=zoom, LOOKY=vertical) + direction (YAW_OFFSET deg).
+$B --headed js "window.__setCam(${FRUSTUM:-0.80}, ${LOOKY:-0.72}); window.__yawOffset=${YAW_OFFSET:-0};" >/dev/null
+
+# yaw 0/90/180/270 (= dirIndex order) face sw/se/ne/nw respectively, so label
+# each rendered yaw with the direction it actually faces (no rotation hack).
+DIRS=(sw se ne nw)
 WALK_LEN="${WALK_LEN:-0.667}"
 for i in 0 1 2 3; do
   d="${DIRS[$i]}"
