@@ -55,7 +55,7 @@ export function AgentCreator({ engineId, game }: { engineId: Id<'engines'>; game
     <div className="mb-4">
       <button
         type="button"
-        className="button text-white shadow-solid px-3 py-1"
+        className="w-full rounded-md border border-clay-500/40 bg-clay-500/10 px-3 py-2 text-center text-sm tracking-wide text-clay-300 transition-colors hover:bg-clay-500/20"
         onClick={() => setOpen(true)}
       >
         + 에이전트 만들기

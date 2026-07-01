@@ -58,8 +58,8 @@ export default function PlayerDetails({
 
   if (!playerId) {
     return (
-      <div className="h-full text-xl flex text-center items-center p-4">
-        Click on an agent on the map to see chat history.
+      <div className="flex h-full items-center p-6 text-center text-sm leading-relaxed text-ink-300">
+        지도에서 에이전트를 클릭하면 대화 기록을 볼 수 있어요.
       </div>
     );
   }
