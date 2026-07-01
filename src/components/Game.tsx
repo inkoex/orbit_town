@@ -43,55 +43,59 @@ export default function Game() {
   return (
     <>
       {SHOW_DEBUG_UI && <DebugTimeManager timeManager={timeManager} width={200} height={100} />}
-      <div className="mx-auto w-full max-w grid grid-rows-[240px_1fr] lg:grid-rows-[1fr] lg:grid-cols-[1fr_auto] lg:grow max-w-[1400px] min-h-[480px] game-frame">
-        {/* Game area */}
-        <div
-          className="relative overflow-hidden"
-          ref={gameWrapperRef}
-          style={{
-            background:
-              'radial-gradient(1.5px 1.5px at 20% 30%, #fff, transparent),' +
-              'radial-gradient(1.5px 1.5px at 70% 60%, #cfe6ff, transparent),' +
-              'radial-gradient(1.5px 1.5px at 45% 80%, #fff, transparent),' +
-              'radial-gradient(1.5px 1.5px at 85% 25%, #9bd, transparent),' +
-              '#05060f',
-          }}
-        >
-          <div className="absolute inset-0">
-            <div className="container">
-              <Stage width={width} height={height} options={{ backgroundAlpha: 0 }}>
-                {/* Re-propagate context because contexts are not shared between renderers.
+      {/* Game area — fills the full viewport (App.tsx gives Game an
+          `absolute inset-0` parent). useElementSize on gameWrapperRef now
+          measures the whole screen, not a grid column, so the iso map is
+          truly full-bleed; the panel below floats on top instead of sharing
+          a CSS Grid track with it. */}
+      <div
+        className="absolute inset-0 overflow-hidden"
+        ref={gameWrapperRef}
+        style={{
+          background:
+            'radial-gradient(1.5px 1.5px at 20% 30%, #fff, transparent),' +
+            'radial-gradient(1.5px 1.5px at 70% 60%, #cfe6ff, transparent),' +
+            'radial-gradient(1.5px 1.5px at 45% 80%, #fff, transparent),' +
+            'radial-gradient(1.5px 1.5px at 85% 25%, #9bd, transparent),' +
+            '#05060f',
+        }}
+      >
+        <div className="absolute inset-0">
+          <div className="container">
+            <Stage width={width} height={height} options={{ backgroundAlpha: 0 }}>
+              {/* Re-propagate context because contexts are not shared between renderers.
 https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-531549215 */}
-                <ConvexProvider client={convex}>
-                  <PixiGame
-                    game={game}
-                    worldId={worldId}
-                    engineId={engineId}
-                    width={width}
-                    height={height}
-                    historicalTime={historicalTime}
-                    setSelectedElement={setSelectedElement}
-                  />
-                </ConvexProvider>
-              </Stage>
-            </div>
+              <ConvexProvider client={convex}>
+                <PixiGame
+                  game={game}
+                  worldId={worldId}
+                  engineId={engineId}
+                  width={width}
+                  height={height}
+                  historicalTime={historicalTime}
+                  setSelectedElement={setSelectedElement}
+                />
+              </ConvexProvider>
+            </Stage>
           </div>
         </div>
-        {/* Right column area */}
-        <div
-          className="flex flex-col overflow-y-auto shrink-0 px-4 py-6 sm:px-6 lg:w-96 xl:pr-6 border-t sm:border-t-0 sm:border-l border-brown-900 bg-brown-800 text-brown-100"
-          ref={scrollViewRef}
-        >
-          <AgentCreator engineId={engineId} game={game} />
-          <PlayerDetails
-            worldId={worldId}
-            engineId={engineId}
-            game={game}
-            playerId={selectedElement?.id}
-            setSelectedElement={setSelectedElement}
-            scrollViewRef={scrollViewRef}
-          />
-        </div>
+      </div>
+
+      {/* Floating sliding panel — translucent glass docked to the right
+          edge, overlaying the map instead of sharing space with it. */}
+      <div
+        className="hud-glass fixed top-4 right-4 bottom-4 z-10 w-80 rounded-lg flex flex-col overflow-y-auto px-4 py-4 text-ink-100"
+        ref={scrollViewRef}
+      >
+        <AgentCreator engineId={engineId} game={game} />
+        <PlayerDetails
+          worldId={worldId}
+          engineId={engineId}
+          game={game}
+          playerId={selectedElement?.id}
+          setSelectedElement={setSelectedElement}
+          scrollViewRef={scrollViewRef}
+        />
       </div>
     </>
   );

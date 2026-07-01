@@ -16,7 +16,7 @@ import { MAX_HUMAN_PLAYERS } from '../convex/constants.ts';
 export default function Home() {
   const [helpModalOpen, setHelpModalOpen] = useState(false);
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
+    <main className="relative w-screen h-screen overflow-hidden font-body game-background">
       <ReactModal
         isOpen={helpModalOpen}
         onRequestClose={() => setHelpModalOpen(false)}
@@ -66,19 +66,26 @@ export default function Home() {
         </Unauthenticated>
       </div> */}
 
-      <div className="w-full lg:h-screen min-h-screen relative isolate overflow-hidden lg:p-8 shadow-2xl flex flex-col justify-start">
-        <h1 className="mx-auto text-4xl p-3 sm:text-8xl lg:text-9xl font-bold font-display leading-none tracking-wide game-title w-full text-left sm:text-center sm:w-auto">
-          ORBIT STATION
-        </h1>
-
-        <div className="max-w-xs md:max-w-xl lg:max-w-none mx-auto my-4 text-center text-sm tracking-widest uppercase text-brown-300 leading-tight">
-          Multi-agent collaboration platform
-        </div>
-
+      <div className="absolute inset-0 isolate">
+        {/* Layer 0 — the iso map fills the entire viewport, edge to edge. */}
         <Game />
 
-        <footer className="justify-end bottom-0 left-0 w-full flex items-center mt-4 gap-3 p-6 flex-wrap pointer-events-none">
-          <div className="flex gap-4 flex-grow pointer-events-none">
+        {/* Layer 1 — floating HUD chrome, translucent glass over the map.
+            pointer-events-none on the wrappers lets map drag/click fall
+            through the empty space around each floating piece. */}
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+          <div className="hud-glass rounded-lg px-8 py-2 text-center pointer-events-auto">
+            <h1 className="text-2xl font-bold font-display leading-none tracking-wide game-title">
+              ORBIT STATION
+            </h1>
+            <div className="mt-1 text-[10px] tracking-widest uppercase text-clay-300/70">
+              Multi-agent collaboration platform
+            </div>
+          </div>
+        </div>
+
+        <footer className="fixed bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+          <div className="hud-glass rounded-lg flex items-center gap-3 p-2 pointer-events-auto">
             <FreezeButton />
             <MusicButton />
             <InteractButton />
@@ -87,6 +94,7 @@ export default function Home() {
             </Button>
           </div>
         </footer>
+
         <ToastContainer position="bottom-right" autoClose={2000} closeOnClick theme="dark" />
       </div>
     </main>
