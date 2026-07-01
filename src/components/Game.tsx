@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import PixiGame from './PixiGame.tsx';
 
-import { useElementSize } from 'usehooks-ts';
+import { useResizeObserver } from '../hooks/useResizeObserver';
 import { Stage } from '@pixi/react';
 import { ConvexProvider, useConvex, useQuery } from 'convex/react';
 import PlayerDetails from './PlayerDetails.tsx';
@@ -21,7 +21,7 @@ export default function Game() {
     kind: 'player';
     id: GameId<'players'>;
   }>();
-  const [gameWrapperRef, { width, height }] = useElementSize();
+  const [gameWrapperRef, { width, height }] = useResizeObserver<HTMLDivElement>();
 
   const worldStatus = useQuery(api.world.defaultWorldStatus);
   const worldId = worldStatus?.worldId;
