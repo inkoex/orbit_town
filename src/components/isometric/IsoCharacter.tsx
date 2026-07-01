@@ -79,11 +79,11 @@ export function IsoCharacter({
     (g: PIXI.Graphics) => {
       g.clear();
       if (!isActive) return;
-      g.beginFill(0x22d3ee, 0.22);
-      g.drawEllipse(0, 0, 30, 15);
+      g.beginFill(0x22d3ee, 0.28);
+      g.drawEllipse(0, 0, 46, 23);
       g.endFill();
-      g.beginFill(0x38e6ff, 0.16);
-      g.drawEllipse(0, 0, 18, 9);
+      g.beginFill(0x38e6ff, 0.22);
+      g.drawEllipse(0, 0, 28, 14);
       g.endFill();
     },
     [isActive],
