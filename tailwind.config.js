@@ -8,7 +8,10 @@ module.exports = {
     },
     extend: {
       colors: {
-        brown: {
+        // Renamed from the legacy "brown" key (leftover from AI Town's original
+        // warm-wood theme) — values were already a dark blue-gray neutral scale,
+        // only the name was misleading.
+        ink: {
           100: '#e2e8f0',  // 강조 텍스트
           200: '#cbd5e1',  // 비활성/힌트 — Amendment D
           300: '#94a3b8',  // 보조 텍스트 — Amendment D

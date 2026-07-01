@@ -87,7 +87,7 @@ export function MessageInput({
       </div>
       <div className={clsx('bubble', 'bubble-mine')}>
         <p
-          className="bg-brown-700 text-brown-100 -mx-3 -my-1 px-2 py-1"
+          className="bg-white/5 text-ink-100 -mx-3 -my-1 px-2 py-1"
           ref={inputRef}
           contentEditable
           style={{ outline: 'none' }}

@@ -78,7 +78,7 @@ export function Messages({
           </time>
         </div>
         <div className={clsx('bubble', m.author === humanPlayerId && 'bubble-mine')}>
-          <p className="bg-brown-700 text-brown-100 -mx-3 -my-1 px-2 py-1">{m.text}</p>
+          <p className="bg-white/5 text-ink-100 -mx-3 -my-1 px-2 py-1">{m.text}</p>
         </div>
       </div>
     );
@@ -99,7 +99,7 @@ export function Messages({
         membershipNodes.push({
           node: (
             <div key={`joined-${playerId}`} className="leading-tight mb-6">
-              <p className="text-brown-300 text-center">{playerName}님이 대화에 참여했습니다.</p>
+              <p className="text-ink-300 text-center">{playerName}님이 대화에 참여했습니다.</p>
             </div>
           ),
           time: started,
@@ -114,7 +114,7 @@ export function Messages({
       membershipNodes.push({
         node: (
           <div key={`joined-${playerId}`} className="leading-tight mb-6">
-            <p className="text-brown-300 text-center">{playerName}님이 대화에 참여했습니다.</p>
+            <p className="text-ink-300 text-center">{playerName}님이 대화에 참여했습니다.</p>
           </div>
         ),
         time: started,
@@ -123,7 +123,7 @@ export function Messages({
       membershipNodes.push({
         node: (
           <div key={`left-${playerId}`} className="leading-tight mb-6">
-            <p className="text-brown-300 text-center">{playerName}님이 대화를 떠났습니다.</p>
+            <p className="text-ink-300 text-center">{playerName}님이 대화를 떠났습니다.</p>
           </div>
         ),
         // Always sort all "left" messages after the last message.
@@ -136,7 +136,7 @@ export function Messages({
   nodes.sort((a, b) => a.time - b.time);
   return (
     <div className="chats text-base sm:text-sm">
-      <div className="bg-brown-800 text-brown-100 p-2">
+      <div className="bg-white/5 text-ink-100 p-2">
         {nodes.length > 0 && nodes.map((n) => n.node)}
         {currentlyTyping && currentlyTyping.playerId !== humanPlayerId && (
           <div key="typing" className="leading-tight mb-6">
@@ -147,7 +147,7 @@ export function Messages({
               </time>
             </div>
             <div className={clsx('bubble')}>
-              <p className="bg-brown-700 text-clay-300 -mx-3 -my-1 px-2 py-1">
+              <p className="bg-white/5 text-clay-300 -mx-3 -my-1 px-2 py-1">
                 <i>typing...</i>
               </p>
             </div>
