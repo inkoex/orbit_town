@@ -73,7 +73,10 @@ export default function Home() {
         {/* Layer 1 — floating HUD chrome, translucent glass over the map.
             pointer-events-none on the wrappers lets map drag/click fall
             through the empty space around each floating piece. */}
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+        {/* Header centers within the MAP area (viewport minus the ~336px
+            right panel gutter), not the raw viewport — otherwise on narrow
+            windows the centered title collides with the panel's controls. */}
+        <div className="fixed top-4 left-0 right-[336px] z-10 flex justify-center pointer-events-none">
           <div className="hud-glass rounded-lg px-8 py-2 text-center pointer-events-auto">
             <h1 className="text-2xl font-bold font-display leading-none tracking-wide game-title">
               ORBIT STATION
