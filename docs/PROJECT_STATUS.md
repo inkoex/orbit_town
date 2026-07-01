@@ -8,8 +8,9 @@
 ## 지금 (2026-07-01)
 
 - 브랜치: `feat/iso-vertical-slice`
-- **UI 셸 리디자인 완료** (HEAD `d52aa3f`): 풀블리드 HUD 오버레이 — iso 지도가 전체 뷰포트를 채우고, 헤더·하단바·에이전트 패널이 반투명 유리(backdrop-blur)로 그 위에 떠 있음. `App.tsx`/`Game.tsx`의 CSS Grid 분할 제거(캔버스가 이제 진짜 전체 화면 측정). 브라운 색상 잔재 전부 정리(`brown`→`ink` rename, 값은 원래도 그래파이트였음), 한글 폰트 `Noto Sans KR`로 수정(전에는 전역 모노스페이스). 롤백 태그 `pre-ui-shell-redesign`. 브라우저 검증: 캔버스 `getBoundingClientRect`=전체 뷰포트, pointer-events 클릭 통과 확인, 콘솔 에러 0, tsc/147테스트/빌드 전부 그린.
-  - **알려진 잔여 이슈(스코프 밖):** AgentCreator 아바타 프리뷰에 체크무늬(텍스처 로딩 문제로 보임, 기존부터 있던 듯) — 미확인. 5색 에이전트 칩은 시각 목업 단계에서 나온 아이디어일 뿐 아직 실제 데이터에 안 묶임. "슬라이딩 패널"은 지금 고정 오픈 상태(장식 핸들만, 실제 여닫기 기능 없음).
+- **UI 셸 리디자인 완료** (HEAD `41d067b`): 풀블리드 HUD 오버레이 — iso 지도가 전체 뷰포트를 채우고, 헤더·하단바·에이전트 패널이 반투명 유리(backdrop-blur)로 그 위에 떠 있음. CSS Grid 분할 제거(`d52aa3f`), 브라운→`ink` rename + Noto Sans KR 한글 폰트(`a9921e6`/`fee8f53`). **후속 수정들:** 넓은 모니터 1536px 캡 버그 수정(`.container` 제거, `944f45f`), `useElementSize`→**ResizeObserver**로 교체(창/레이아웃 변화에 자동 fit, `b883ef5`), 헤더-패널 충돌 수정(좁은 창, `6b5302d`), **하단 툴바 + 에이전트 만들기 버튼 + 패널 안내문까지 시안-온-글라스로 통일**(`10c8ea4`/`41d067b`). 롤백 태그 `pre-ui-shell-redesign`. 브라우저 검증(1200↔2200↔900 리사이즈, 좁은폭 헤더, 버튼 틴트) + tsc/147테스트/빌드 전부 그린.
+  - **알려진 잔여 이슈(스코프 밖):** AgentCreator 아바타 프리뷰에 체크무늬(텍스처 로딩 문제로 보임, 기존부터 있던 듯). 대화 액션 버튼(Start conversation/Accept/Reject/Leave/닫기 X)은 아직 옛 `.button`+`bg-clay-700` 스타일(대화 참여 중에만 뜸) — 통일 원하면 나중에. 5색 에이전트 칩은 시안 단계 아이디어일 뿐 미연결. "슬라이딩 패널"은 고정 오픈(장식 핸들만).
+  - **주의:** GStack Browser(= `browse --headed`, 내 자동화 브라우저)가 검증 때마다 실제 창으로 뜸 → 사용자 화면에 "낡은 창"으로 섞여 혼란 유발했음. 판단은 사용자 평소 Chrome에서. HMR 구조변경 후엔 하드 리로드 필요할 수 있음(ResizeObserver로 상당 부분 완화됨).
 - **아바타 슬라이스 1 완료 (튜닝 전부 포함)** (`01a78ae`): Kenney Mini 렌더 파이프라인 → 테마-aware Asset Contract → 게임 연결. 6 에이전트 = `iso-agent`(같은 캐릭터). 4방향 워크 정상, iso 3/4 뷰, 크기=반칸(128×256), 발밑 glow 확대.
 - **대화 페이싱 튜닝** (`16154bb`): `convex/constants.ts` — 대화 빈도↓·메시지 텀↑·대화 길이↓. 배포됨.
 - **LLM 복구**: OpenAI 잔고 0이던 게 원인(agents 동결) → $30 충전으로 정상. Convex 쿼터/write-conflict 아니었음.
