@@ -20,7 +20,10 @@ ready=$($B --headed js "window.__renderReady||false")
 [ "$ready" = "true" ] || { echo "FAIL: render not ready (glb load failed?)"; exit 1; }
 
 # Tunable framing (FRUSTUM=zoom, LOOKY=vertical) + direction (YAW_OFFSET deg).
-$B --headed js "window.__setCam(${FRUSTUM:-0.80}, ${LOOKY:-0.72}); window.__yawOffset=${YAW_OFFSET:-0};" >/dev/null
+# YAW_OFFSET default -45: with DIRS=(sw se ne nw) this makes each rendered frame
+# face its true iso travel direction (matches the original iso-agent). Was 0,
+# which rotated every avatar 45deg off from its movement heading.
+$B --headed js "window.__setCam(${FRUSTUM:-0.80}, ${LOOKY:-0.72}); window.__yawOffset=${YAW_OFFSET:--45};" >/dev/null
 
 # yaw 0/90/180/270 (= dirIndex order) face sw/se/ne/nw respectively, so label
 # each rendered yaw with the direction it actually faces (no rotation hack).
