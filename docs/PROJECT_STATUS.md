@@ -11,7 +11,9 @@
 - **UI 셸 리디자인 완료** (HEAD `41d067b`): 풀블리드 HUD 오버레이 — iso 지도가 전체 뷰포트를 채우고, 헤더·하단바·에이전트 패널이 반투명 유리(backdrop-blur)로 그 위에 떠 있음. CSS Grid 분할 제거(`d52aa3f`), 브라운→`ink` rename + Noto Sans KR 한글 폰트(`a9921e6`/`fee8f53`). **후속 수정들:** 넓은 모니터 1536px 캡 버그 수정(`.container` 제거, `944f45f`), `useElementSize`→**ResizeObserver**로 교체(창/레이아웃 변화에 자동 fit, `b883ef5`), 헤더-패널 충돌 수정(좁은 창, `6b5302d`), **하단 툴바 + 에이전트 만들기 버튼 + 패널 안내문까지 시안-온-글라스로 통일**(`10c8ea4`/`41d067b`). 롤백 태그 `pre-ui-shell-redesign`. 브라우저 검증(1200↔2200↔900 리사이즈, 좁은폭 헤더, 버튼 틴트) + tsc/147테스트/빌드 전부 그린.
   - **알려진 잔여 이슈(스코프 밖):** AgentCreator 아바타 프리뷰에 체크무늬(텍스처 로딩 문제로 보임, 기존부터 있던 듯). 대화 액션 버튼(Start conversation/Accept/Reject/Leave/닫기 X)은 아직 옛 `.button`+`bg-clay-700` 스타일(대화 참여 중에만 뜸) — 통일 원하면 나중에. 5색 에이전트 칩은 시안 단계 아이디어일 뿐 미연결. "슬라이딩 패널"은 고정 오픈(장식 핸들만).
   - **주의:** GStack Browser(= `browse --headed`, 내 자동화 브라우저)가 검증 때마다 실제 창으로 뜸 → 사용자 화면에 "낡은 창"으로 섞여 혼란 유발했음. 판단은 사용자 평소 Chrome에서. HMR 구조변경 후엔 하드 리로드 필요할 수 있음(ResizeObserver로 상당 부분 완화됨).
-- **아바타 슬라이스 1 완료 (튜닝 전부 포함)** (`01a78ae`): Kenney Mini 렌더 파이프라인 → 테마-aware Asset Contract → 게임 연결. 6 에이전트 = `iso-agent`(같은 캐릭터). 4방향 워크 정상, iso 3/4 뷰, 크기=반칸(128×256), 발밑 glow 확대.
+- **아바타 슬라이스 1+2 완료**: Kenney Mini 렌더 파이프라인 → 테마-aware Asset Contract → 게임 연결(슬라이스1 `01a78ae`). **슬라이스2(`7baa6c9`/`3430bb7`/`d687232`): 12종 전부 렌더(`iso-agent-1..12`, `avatar-choices.png` 참조) + `AVATAR_REGISTRY`/`isoCharacters` 등록 + 6명에 색 구분 캐스팅**(Nova흰/Orion회/Vega노랑/Lyra빨강/Atlas초록/Iris퍼플). **재시드 없이** `recastAvatars:recast`로 `playerDescriptions.character` 6행만 패치(reactive→즉시 반영, 월드 Frozen 유지, ~6 write). 클라우드 dev에 적용 완료(patched 6/6). 4방향 워크 정상, iso 3/4 뷰, 발밑 glow.
+  - **yaw 방향 버그 수정**(`f9cafc6`): 첫 렌더는 `extract.sh`가 render.html yawOffset(-45)을 0으로 덮어써 아바타가 진행방향 대비 45° 틀어짐. YAW_OFFSET=-45로 12개 재렌더 + extract.sh 기본값 -45로 수정. (DIRS=(sw se ne nw) 기준 -45가 정답.)
+  - **맵/HUD 후속 수정**: iso 기본 배율 fit(`c338eec`, 콘텐츠 중심+화면 채움+좌하단 여백 제거), 하늘 가로줄 제거(`1d48259`, 히트-렉트 alpha 엣지→hitArea).
 - **대화 페이싱 튜닝** (`16154bb`): `convex/constants.ts` — 대화 빈도↓·메시지 텀↑·대화 길이↓. 배포됨.
 - **LLM 복구**: OpenAI 잔고 0이던 게 원인(agents 동결) → $30 충전으로 정상. Convex 쿼터/write-conflict 아니었음.
 - 모션 폴리시 완료 (`b9d27fa`).
@@ -24,10 +26,9 @@
 
 **UI 셸 잔여(선택):** 체크무늬 아바타 프리뷰 원인 확인, 슬라이딩 패널 실제 여닫기, 5색 에이전트 칩 데이터 연결.
 
-**다음 — 슬라이스 2 (6명 다른 아바타):**
-- 캐릭터당 `./tools/avatar-render/extract.sh "<glb>" <avatarId>` (12종 중 6 선택)
-- `AVATAR_REGISTRY` 등록 + `data/characters.ts` `isoDescriptions` 이름 분화(`iso-agent-1..6`) + **Convex 재시드**(쿼터 주의)
-- UI 셸을 먼저 끝낸 이유: 순수 프론트엔드라 재시드/쿼터 리스크 0, 방향이 막 확정된 상태에서 바로 landing. 이제 이 리스크 하나만 남음.
+**슬라이스 2 완료** (위 "지금" 참조). 12종 렌더+등록+캐스팅+yaw수정 다 끝. 재시드 대신 `recastAvatars:recast`(playerDescriptions 6행 패치)로 클라우드 반영. **남은 선택지:**
+- 캐스팅 조합 바꾸고 싶으면 `data/characters.ts` `isoDescriptions` + `convex/recastAvatars.ts` CAST 맵 수정 후 재실행(재렌더 불필요).
+- 완전 무료화 원하면 로컬 Convex 이전(아래 열린 실타래) — 그때 정식 재시드.
 
 ## 열린 실타래 / 주의
 
