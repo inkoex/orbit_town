@@ -75,9 +75,12 @@ export function IsoMap({
       const ys = c.map((p) => p.y);
       const minX = Math.min(...xs);
       const minY = Math.min(...ys);
-      g.beginFill(0x000000, 0.001);
-      g.drawRect(minX, minY, Math.max(...xs) - minX, Math.max(...ys) - minY);
-      g.endFill();
+      // Bounding-box click target. Use an explicit hitArea rather than a drawn
+      // near-transparent rect: even at alpha 0.001 the rect's antialiased top
+      // edge showed as a faint full-width horizontal seam in the sky. hitArea
+      // renders nothing but keeps the whole box clickable (void clicks are
+      // rejected upstream by isWalkableTile).
+      g.hitArea = new PIXI.Rectangle(minX, minY, Math.max(...xs) - minX, Math.max(...ys) - minY);
     },
     [platforms, bridges, width, height, projection],
   );
