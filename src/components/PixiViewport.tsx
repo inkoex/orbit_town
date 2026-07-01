@@ -48,7 +48,17 @@ export default PixiComponent('Viewport', {
       })
       .setZoom(-10)
       .clampZoom({
-        minScale: (1.04 * props.screenWidth) / (props.worldWidth / 2),
+        // Fit-all based: the most zoomed-out you can go is ~the whole world
+        // fitting the viewport (times a factor for a bit of extra margin). The
+        // old formula scaled minScale with screenWidth only, so a wider (now
+        // full-bleed) viewport forced a higher minimum zoom = the map appeared
+        // bigger. This fits both dimensions and both view modes.
+        minScale:
+          0.7 *
+          Math.min(
+            props.screenWidth / props.worldWidth,
+            props.screenHeight / props.worldHeight,
+          ),
         maxScale: 3.0,
       });
     return viewport;

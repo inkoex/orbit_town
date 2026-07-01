@@ -150,8 +150,11 @@ export const PixiGame = (props: {
     if (!viewport || didInitCamera.current) return;
     if (isoMode && isoProjection) {
       const c = isoProjection.worldToScreen({ x: width / 2, y: height / 2 });
-      // zoom out enough that all islands sit inside the canvas with margin.
-      viewport.animate({ position: new PIXI.Point(c.x, c.y), scale: 0.19 });
+      // Fit the whole archipelago to the current viewport (was a hardcoded 0.19
+      // tuned for the old grid-column game area; full-bleed made it wrong).
+      const wsize = isoProjection.viewportSize(width, height);
+      const fit = Math.min(props.width / wsize.width, props.height / wsize.height);
+      viewport.animate({ position: new PIXI.Point(c.x, c.y), scale: fit * 0.85 });
       didInitCamera.current = true;
       return;
     }
