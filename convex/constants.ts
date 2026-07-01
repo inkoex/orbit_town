@@ -18,8 +18,8 @@ export const COLLISION_THRESHOLD = 0.75;
 // How many human players can be in a world at once.
 export const MAX_HUMAN_PLAYERS = 8;
 
-// Don't talk to anyone for 90s after having a conversation.
-export const CONVERSATION_COOLDOWN = 90000;
+// Don't talk to anyone for 3 min after having a conversation.
+export const CONVERSATION_COOLDOWN = 180000;
 
 // Don't do another activity for 10s after doing one.
 export const ACTIVITY_COOLDOWN = 10_000;
