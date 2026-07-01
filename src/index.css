@@ -58,6 +58,58 @@ body {
     #0a0d14;
 }
 
+/* Space starfield behind the transparent iso canvas. Was 4 lone radial dots
+   (read as accidental); now a scattered field at varied sizes/brightness so it
+   reads as a deliberate backdrop. Screen-fixed (lives on the game wrapper's
+   background, painted behind the Stage's children) — no parallax, but bullet-
+   proof and cheap. Two faint nebula washes underlay the stars for depth. */
+.game-starfield {
+  background-color: #05060f;
+  background-image:
+    /* small dim stars */
+    radial-gradient(1px 1px at 2% 8%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 9% 41%, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(1px 1px at 14% 73%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 6% 88%, rgba(207, 230, 255, 0.45), transparent),
+    radial-gradient(1px 1px at 19% 22%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 24% 57%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 31% 90%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 12% 55%, rgba(207, 230, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 27% 15%, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(1px 1px at 3% 63%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 17% 95%, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(1px 1px at 96% 15%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 97% 70%, rgba(207, 230, 255, 0.45), transparent),
+    radial-gradient(1px 1px at 1% 30%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 8% 68%, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(1px 1px at 55% 95%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 46% 25%, rgba(207, 230, 255, 0.4), transparent),
+    /* medium stars */
+    radial-gradient(1.3px 1.3px at 38% 12%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1.3px 1.3px at 52% 8%, rgba(255, 255, 255, 0.75), transparent),
+    radial-gradient(1.3px 1.3px at 61% 33%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1.3px 1.3px at 74% 18%, rgba(207, 230, 255, 0.75), transparent),
+    radial-gradient(1.3px 1.3px at 88% 9%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1.3px 1.3px at 92% 44%, rgba(255, 255, 255, 0.75), transparent),
+    radial-gradient(1.3px 1.3px at 68% 55%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1.3px 1.3px at 83% 62%, rgba(207, 230, 255, 0.7), transparent),
+    radial-gradient(1.3px 1.3px at 35% 72%, rgba(255, 255, 255, 0.75), transparent),
+    radial-gradient(1.3px 1.3px at 48% 88%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1.3px 1.3px at 57% 66%, rgba(207, 230, 255, 0.75), transparent),
+    radial-gradient(1.3px 1.3px at 79% 76%, rgba(255, 255, 255, 0.7), transparent),
+    /* bright hero stars (bluish) */
+    radial-gradient(2px 2px at 30% 35%, #ffffff, transparent),
+    radial-gradient(2px 2px at 63% 20%, #cfe6ff, transparent),
+    radial-gradient(2px 2px at 85% 35%, #9bbfdd, transparent),
+    radial-gradient(2px 2px at 15% 40%, #ffffff, transparent),
+    radial-gradient(2px 2px at 72% 92%, #cfe6ff, transparent),
+    radial-gradient(2px 2px at 90% 88%, #9bbfdd, transparent),
+    /* nebula depth washes */
+    radial-gradient(ellipse 40% 30% at 22% 28%, rgba(30, 50, 90, 0.22), transparent),
+    radial-gradient(ellipse 45% 35% at 80% 75%, rgba(40, 30, 80, 0.2), transparent);
+  background-repeat: no-repeat;
+}
+
 .game-title {
   background: linear-gradient(to bottom, #a5f3fc, #06b6d4);
   -webkit-background-clip: text;

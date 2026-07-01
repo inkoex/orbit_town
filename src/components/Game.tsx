@@ -49,16 +49,8 @@ export default function Game() {
           truly full-bleed; the panel below floats on top instead of sharing
           a CSS Grid track with it. */}
       <div
-        className="absolute inset-0 overflow-hidden"
+        className="absolute inset-0 overflow-hidden game-starfield"
         ref={gameWrapperRef}
-        style={{
-          background:
-            'radial-gradient(1.5px 1.5px at 20% 30%, #fff, transparent),' +
-            'radial-gradient(1.5px 1.5px at 70% 60%, #cfe6ff, transparent),' +
-            'radial-gradient(1.5px 1.5px at 45% 80%, #fff, transparent),' +
-            'radial-gradient(1.5px 1.5px at 85% 25%, #9bd, transparent),' +
-            '#05060f',
-        }}
       >
         {/* No extra wrapper here: Tailwind's default `.container` utility
             (unconfigured in tailwind.config.js) caps width at its breakpoint
