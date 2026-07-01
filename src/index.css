@@ -77,6 +77,34 @@ body {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
 }
 
+/* Toolbar buttons that live inside the glass footer bar. Matches the header's
+   cyan-on-glass language: no solid fill, cyan uppercase label, cyan-tinted
+   icon, subtle hover — instead of the old chunky solid-teal game buttons. */
+.hud-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 6px;
+  padding: 6px 13px;
+  color: #22d3ee;
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.hud-btn:hover {
+  background: rgba(34, 211, 238, 0.12);
+}
+.hud-btn img {
+  width: 18px;
+  height: 18px;
+  /* Recolor the white source SVGs to the cyan accent (brightness(0) → black,
+     then filter to #22d3ee). */
+  filter: brightness(0) invert(72%) sepia(52%) saturate(2500%) hue-rotate(151deg)
+    brightness(97%) contrast(92%);
+}
+
 .game-frame {
   border-width: 1px;
   border-image: none !important;
