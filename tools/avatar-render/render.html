@@ -22,8 +22,8 @@ key.position.set(2, 4, 3);
 scene.add(key);
 
 const aspect = W / H;
-let frustum = 0.62;     // half-height of ortho view in world units (tuned for Kenney Mini)
-let lookY = 0.55;       // world-Y the camera aims at; higher => character lower in frame
+let frustum = 0.82;     // half-height of ortho view in world units (tuned for Kenney Mini)
+let lookY = 0.68;       // world-Y the camera aims at; higher => character lower in frame
 // iso: azimuth 45deg, elevation ~30deg (arctan(0.5)=26.57 is true 2:1)
 const cam = new THREE.OrthographicCamera(
   -frustum * aspect, frustum * aspect, frustum, -frustum, 0.1, 100,

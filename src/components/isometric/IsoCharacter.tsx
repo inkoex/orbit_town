@@ -23,8 +23,11 @@ interface Props {
   onClick?: () => void;
 }
 
-const SPRITE_W = 256;
-const SPRITE_H = 512;
+// On-screen display size (world units). Tile is 256 wide, so 128 = half a tile.
+// This is the size knob — smaller/larger is instant and fully reversible; the
+// source PNGs stay full-res (256x512) so scaling back up stays crisp.
+const SPRITE_W = 128;
+const SPRITE_H = 256;
 
 // A character anchored at its foot contact. The whole thing sits in one
 // Container whose zIndex (isoDepthKey) is sorted against walls/furniture in the
