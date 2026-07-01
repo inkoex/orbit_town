@@ -61,14 +61,23 @@ const framesIn = (avatarId: string): Record<IsoDirection, { idle: string; walk: 
   return { se: dir('se'), sw: dir('sw'), nw: dir('nw'), ne: dir('ne') };
 };
 
-// Asset Contract: runtime references avatarId only. Slice 1 maps the shared
-// 'iso-agent' character. (The theme dimension is deferred to slice 2 — paths are
-// pinned to the single 'iso-slice' theme for now.)
+// Asset Contract: runtime references avatarId only. All 12 Kenney Mini
+// characters are rendered (tools/avatar-render/) and registered as
+// 'iso-agent-1'..'iso-agent-12' (the numbering in avatar-choices.png:
+// 1-6 = female-a..f, 7-12 = male-a..f). Casting is just picking an id per
+// agent in the seed — no re-render needed. 'iso-agent' is the original shared
+// model, kept as the fallback. (Theme dimension still pinned to 'iso-slice'.)
 export const AVATAR_REGISTRY: Record<
   string,
   Record<IsoDirection, { idle: string; walk: string[] }>
 > = {
   'iso-agent': framesIn('iso-agent'),
+  ...Object.fromEntries(
+    Array.from({ length: 12 }, (_, i) => {
+      const id = `iso-agent-${i + 1}`;
+      return [id, framesIn(id)];
+    }),
+  ),
 };
 
 // Unregistered avatarId falls back to the original single model (top-level paths).
