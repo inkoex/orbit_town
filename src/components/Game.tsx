@@ -87,7 +87,7 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
       {/* Floating sliding panel — translucent glass docked to the right
           edge, overlaying the map instead of sharing space with it. */}
       <div
-        className="hud-glass fixed top-4 right-4 bottom-4 z-10 w-80 rounded-lg flex flex-col overflow-y-auto px-4 py-4 text-ink-100"
+        className="hud-glass hud-scroll fixed top-4 right-4 bottom-4 z-10 w-80 rounded-lg flex flex-col overflow-y-auto px-4 py-4 text-ink-100"
         ref={scrollViewRef}
       >
         <AgentCreator engineId={engineId} game={game} />

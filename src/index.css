@@ -96,6 +96,30 @@ body {
 .hud-btn:hover {
   background: rgba(34, 211, 238, 0.12);
 }
+
+/* Slim translucent-cyan scrollbar for glass panels — the default chunky white
+   OS scrollbar clashes badly with the HUD glass. */
+.hud-scroll {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(34, 211, 238, 0.35) transparent;
+}
+.hud-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.hud-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.hud-scroll::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.28);
+  border-radius: 8px;
+  /* transparent border + content-box clip = a thin thumb floating with padding */
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.hud-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 211, 238, 0.5);
+  background-clip: content-box;
+}
 .hud-btn img {
   width: 18px;
   height: 18px;
