@@ -16,7 +16,15 @@
   font-family: 'Upheaval Pro', 'sans-serif';
 }
 
+/* Body/UI text, including all Korean chat — Noto Sans KR renders Hangul
+   correctly; the old VCR OSD Mono (Western monospace) mis-shaped it. */
 .font-body {
+  font-family: 'Noto Sans KR', 'Upheaval Pro', 'sans-serif';
+}
+
+/* Opt-in retro terminal mono, for the few spots that want that texture
+   specifically rather than as the silent global default. */
+.font-mono-retro {
   font-family: 'VCR OSD Mono', 'monospace';
 }
 
@@ -55,8 +63,18 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: none;
   letter-spacing: 0.08em;
+  filter: drop-shadow(0 0 12px rgba(34, 211, 238, 0.55));
+}
+
+/* Floating HUD chrome: the iso map fills the whole viewport underneath;
+   header/panel/footer are translucent glass sitting on top of it. */
+.hud-glass {
+  background: rgba(8, 13, 22, 0.55);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(6, 182, 212, 0.28);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
 }
 
 .game-frame {
