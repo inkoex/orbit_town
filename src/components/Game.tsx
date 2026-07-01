@@ -60,25 +60,28 @@ export default function Game() {
             '#05060f',
         }}
       >
-        <div className="absolute inset-0">
-          <div className="container">
-            <Stage width={width} height={height} options={{ backgroundAlpha: 0 }}>
-              {/* Re-propagate context because contexts are not shared between renderers.
+        {/* No extra wrapper here: Tailwind's default `.container` utility
+            (unconfigured in tailwind.config.js) caps width at its breakpoint
+            max-widths (e.g. 1536px on a 2xl screen) regardless of the
+            gameWrapperRef measurement above it — that silently capped the
+            canvas on wide monitors once the outer max-w-[1400px] constraint
+            was removed for the full-bleed layout. Stage reads width/height
+            straight from useElementSize, no intermediate layout box needed. */}
+        <Stage width={width} height={height} options={{ backgroundAlpha: 0 }}>
+          {/* Re-propagate context because contexts are not shared between renderers.
 https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-531549215 */}
-              <ConvexProvider client={convex}>
-                <PixiGame
-                  game={game}
-                  worldId={worldId}
-                  engineId={engineId}
-                  width={width}
-                  height={height}
-                  historicalTime={historicalTime}
-                  setSelectedElement={setSelectedElement}
-                />
-              </ConvexProvider>
-            </Stage>
-          </div>
-        </div>
+          <ConvexProvider client={convex}>
+            <PixiGame
+              game={game}
+              worldId={worldId}
+              engineId={engineId}
+              width={width}
+              height={height}
+              historicalTime={historicalTime}
+              setSelectedElement={setSelectedElement}
+            />
+          </ConvexProvider>
+        </Stage>
       </div>
 
       {/* Floating sliding panel — translucent glass docked to the right
