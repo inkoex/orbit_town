@@ -127,54 +127,61 @@ export { spaceDescriptions, spaceCharacters };
 export const folkDescriptions = Descriptions;
 
 // iso-slice reuses the f1 top-down texture metadata so character validation
-// passes; the real isometric sprites are supplied by the Task 5 manifest.
+// passes; the real isometric sprites are supplied by the Task 5 manifest
+// (AVATAR_REGISTRY, keyed by these same names). All 12 rendered avatars are
+// registered here so any agent can be cast as any of them via its description's
+// `character` field — see isoDescriptions below.
+const ISO_AVATAR_META = {
+  textureUrl: '/ai-town/assets/32x32folk.png',
+  spritesheetData: f1SpritesheetData,
+  speed: 0.1,
+};
 export const isoCharacters = [
-  {
-    name: 'iso-agent',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f1SpritesheetData,
-    speed: 0.1,
-  },
+  { name: 'iso-agent', ...ISO_AVATAR_META },
+  ...Array.from({ length: 12 }, (_, i) => ({
+    name: `iso-agent-${i + 1}`,
+    ...ISO_AVATAR_META,
+  })),
 ];
 
 export const isoDescriptions = [
   {
     name: 'Nova',
-    character: 'iso-agent',
+    character: 'iso-agent-5',
     identity:
       'Nova is a calm station systems analyst who explains observations precisely.',
     plan: 'Inspect the station and speak with its visitor.',
   },
   {
     name: 'Orion',
-    character: 'iso-agent',
+    character: 'iso-agent-4',
     identity:
       'Orion handles navigation and logistics; methodical, dry humor, likes a plan.',
     plan: 'Map the platforms and keep the bridges clear.',
   },
   {
     name: 'Vega',
-    character: 'iso-agent',
+    character: 'iso-agent-2',
     identity: 'Vega runs the cafe and outreach; warm, talkative, remembers everyone.',
     plan: 'Greet people at the cafe and trade station gossip.',
   },
   {
     name: 'Lyra',
-    character: 'iso-agent',
+    character: 'iso-agent-3',
     identity:
       'Lyra is the station researcher; curious, precise, always reading something.',
     plan: 'Dig through the library archives and share odd findings.',
   },
   {
     name: 'Atlas',
-    character: 'iso-agent',
+    character: 'iso-agent-7',
     identity:
       'Atlas is the maker-engineer; hands-on, blunt, fixes things before they break.',
     plan: 'Tinker with station hardware and recruit help for repairs.',
   },
   {
     name: 'Iris',
-    character: 'iso-agent',
+    character: 'iso-agent-1',
     identity: 'Iris organizes events; lively, social, pulls people together for things.',
     plan: 'Plan a gathering at the event platform and invite the crew.',
   },
