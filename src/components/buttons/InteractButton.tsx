@@ -69,7 +69,9 @@ export default function InteractButton() {
   // }
   return (
     <Button imgUrl={interactImg} onClick={joinOrLeaveGame}>
-      {isPlaying ? 'Leave' : 'Interact'}
+      <span className="inline-block min-w-[4.5rem] text-center">
+        {isPlaying ? 'Leave' : 'Interact'}
+      </span>
     </Button>
   );
 }
