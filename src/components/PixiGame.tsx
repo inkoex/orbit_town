@@ -149,12 +149,52 @@ export const PixiGame = (props: {
     const viewport = viewportRef.current;
     if (!viewport || didInitCamera.current) return;
     if (isoMode && isoProjection) {
-      const c = isoProjection.worldToScreen({ x: width / 2, y: height / 2 });
-      // Fit the whole archipelago to the current viewport (was a hardcoded 0.19
-      // tuned for the old grid-column game area; full-bleed made it wrong).
-      const wsize = isoProjection.viewportSize(width, height);
-      const fit = Math.min(props.width / wsize.width, props.height / wsize.height);
-      viewport.animate({ position: new PIXI.Point(c.x, c.y), scale: fit * 0.85 });
+      // Wait for a real viewport size. On first mount (before ResizeObserver
+      // measures) props.width/height can be 0 — computing a fit scale from that
+      // yields 0 or a NEGATIVE scale, which makes pixi build a NaN transform and
+      // crashes the whole Stage. The effect re-runs (props.width/height are in
+      // the deps) once the real size arrives.
+      if (props.width < 100 || props.height < 100) return;
+      // Frame the ACTUAL drawn content (platforms + bridges), not the full grid
+      // box. The grid is 20x16 but the islands sit off-center within it, so
+      // fitting/centering on the grid left a big empty margin on the bottom-left
+      // and undersized the map. Compute the content's screen bounding box, fit
+      // it into the *visible* area (minus the floating HUD panel/header/footer),
+      // and center it there.
+      const PANEL_W = 340; // right agent panel (w-80 + right-4)
+      const RESERVE_TOP = 140; // header + billboard headroom
+      const RESERVE_BOTTOM = 80; // bottom toolbar
+      const FILL = 0.95; // how tightly to fill the visible area
+      let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity;
+      for (const r of [...PLATFORMS.map((p) => p.rect), ...BRIDGES]) {
+        for (const corner of [
+          { x: r.x, y: r.y },
+          { x: r.x + r.w, y: r.y },
+          { x: r.x, y: r.y + r.h },
+          { x: r.x + r.w, y: r.y + r.h },
+        ]) {
+          const s = isoProjection.worldToScreen(corner);
+          minX = Math.min(minX, s.x);
+          maxX = Math.max(maxX, s.x);
+          minY = Math.min(minY, s.y);
+          maxY = Math.max(maxY, s.y);
+        }
+      }
+      const contentW = maxX - minX;
+      const contentH = maxY - minY;
+      const cx = (minX + maxX) / 2;
+      const cy = (minY + maxY) / 2;
+      const visibleW = Math.max(props.width - PANEL_W, 200);
+      const visibleH = Math.max(props.height - RESERVE_TOP - RESERVE_BOTTOM, 200);
+      const scale = Math.max(Math.min(visibleW / contentW, visibleH / contentH) * FILL, 0.05);
+      // Offset the camera target so the content centers in the visible area
+      // (left of the panel, below the header) rather than the full window.
+      const px = cx + PANEL_W / 2 / scale;
+      const py = cy - (RESERVE_TOP - RESERVE_BOTTOM) / 2 / scale;
+      viewport.animate({ position: new PIXI.Point(px, py), scale });
       didInitCamera.current = true;
       return;
     }
@@ -168,7 +208,7 @@ export const PixiGame = (props: {
       scale: 1.5,
     });
     didInitCamera.current = true;
-  }, [humanPlayerId, isoMode, isoProjection, width, height]);
+  }, [humanPlayerId, isoMode, isoProjection, width, height, props.width, props.height]);
 
   return (
     <PixiViewport
