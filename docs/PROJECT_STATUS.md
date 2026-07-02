@@ -15,6 +15,12 @@
   - **yaw 방향 버그 수정**(`f9cafc6`): 첫 렌더는 `extract.sh`가 render.html yawOffset(-45)을 0으로 덮어써 아바타가 진행방향 대비 45° 틀어짐. YAW_OFFSET=-45로 12개 재렌더 + extract.sh 기본값 -45로 수정. (DIRS=(sw se ne nw) 기준 -45가 정답.)
   - **맵/HUD 후속 수정**: iso 기본 배율 fit(`c338eec`, 콘텐츠 중심+화면 채움+좌하단 여백 제거), 하늘 가로줄 제거(`1d48259`, 히트-렉트 alpha 엣지→hitArea).
   - **우주 배경(별필드) 폴리시**(`83c3e11`→`fc0d368`→`d782399`): 원래 CSS radial 점 4개(우연처럼 보임)를 → `.game-starfield`(`src/index.css`)에 별 ~190개(밝기/색 다양, 밝은 별 glow) + 성운 워시 4개 + **달(좌상단)·행성(좌하단)** 셰이딩 구체로. 화면 고정 CSS(투명 PIXI 캔버스 뒤에 painted), 비용 0. 원인은 코덱스가 Game.tsx 인라인 스타일에서 찾음(내가 index.css만 뒤져 놓침). 생성기: scratch `genstars4.mjs`(별/천체 수치 조정 지점). 검증은 실측 2560×1340 독립 렌더(PIXI 크래시로 인앱 스샷 불가).
+- **Antigravity 레퍼런스 폴리시 4팩 완료 (2026-07-02, `549e534`→`12dcf3b`)**: 사용자가 원본 영감 이미지(Google Antigravity iso 데모)를 주고 "지금 단계 폴리시 총정리" 요청 → 4팩 전부 선택·구현.
+  - **①생동감**(`549e534`): 아바타 **이름칩**(발밑) + **말풍선**(머리 위, 시안 이름 헤더+글로우 패널+꼬리). 우선순위 타이핑 `···` > 실제 대화 최신 메시지(참여 중일 때만 `listMessages` 구독, 백엔드 변경 0) > 유휴 활동 이모지. 페이드는 티커 기반(12s/3s), `VITE_ISO_BUBBLE_DEBUG`로 Frozen 상태 검증 가능. 순수 로직 `bubble.ts`+테스트.
+  - **②구조감**(`bd248cf`): 플랫폼 **슬라브 압출 64px**(좌우 셰이딩 측면) + 아래 **부유 글로우 풀** + 전면-좌 측면 **엣지 명판**(빌보드 skew 기법). 바닥 대문자 라벨은 은은하게.
+  - **③소품**(`3b636f9`): 글로잉 라운드 **테이블+스툴 4개**, EVENT에 **CLI 콘솔 블록**(`CLI >_` 터미널그린, 작업 레이어 예고) + 회전 **홀로 와이어프레임 큐브**(`holoCube.ts` 순수수학+테스트). 빌보드: **AGENTS ONLINE 실카운트** + 컬러 글리프 모자이크. 전부 procedural Graphics, sortableChildren에서 캐릭터와 정상 occlusion.
+  - **④디테일**(`12dcf3b`): 달 **크레이터 4개**(calc 오프셋, 독립 렌더로 확인), 바닥 라벨 **줌 반응 페이드**(`ZoomFade`+`remapClamped` 테스트), PlayerDetails 대화 버튼 **hud-btn 글라스 통일**(브라운 JRPG 잔재 제거), AgentCreator **체커보드 프리뷰 원인 수정**(placeholder f1 시트 → iso 정면 idle PNG 13종, `getIsoAvatarPreviewUrl` 테스트).
+  - 검증: tsc 클린, **jest 163**(+16 신규), vite build OK. **인앱 픽셀 검증은 사용자 Chrome 하드리로드 필요**(자동화 브라우저 PIXI 크래시 지속). 말풍선 라이브 확인은 unfreeze 필요(또는 `VITE_ISO_BUBBLE_DEBUG=true`).
 - **대화 페이싱 튜닝** (`16154bb`): `convex/constants.ts` — 대화 빈도↓·메시지 텀↑·대화 길이↓. 배포됨.
 - **LLM 복구**: OpenAI 잔고 0이던 게 원인(agents 동결) → $30 충전으로 정상. Convex 쿼터/write-conflict 아니었음.
 - 모션 폴리시 완료 (`b9d27fa`).
