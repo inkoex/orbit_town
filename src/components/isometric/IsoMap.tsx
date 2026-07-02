@@ -1,5 +1,5 @@
 import { Container, Graphics, Text } from '@pixi/react';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 import type { Projection } from '../../rendering/projection/Projection';
 import type { Platform, Rect } from '../../../data/isoVerticalSlice';
@@ -25,6 +25,12 @@ const GRID_LINE = 0x123042;
 const RIM_CYAN = 0x22d3ee;
 const RIM_CYAN_HOT = 0x38e6ff;
 
+// Slab extrusion: platforms read as thick floating slabs (Antigravity ref),
+// not flat outlines. Left face darker than right = fake directional light.
+const SLAB_T = 64;
+const SLAB_LEFT = 0x060a12;
+const SLAB_RIGHT = 0x0a1020;
+
 const LABEL_STYLE = new PIXI.TextStyle({
   fontFamily: 'monospace',
   fontSize: 90,
@@ -32,6 +38,48 @@ const LABEL_STYLE = new PIXI.TextStyle({
   letterSpacing: 12,
   fill: 0x9fe9f5,
 });
+
+const PLATE_STYLE = new PIXI.TextStyle({
+  fontFamily: 'monospace',
+  fontSize: 36,
+  fontWeight: '700',
+  letterSpacing: 5,
+  fill: 0xbff7ff,
+});
+
+// Platform name on a plate riveted to the front-left slab face (the reference's
+// "MAKER SPACE" treatment). Same shear trick as IsoBillboard: the c3→c2 edge
+// runs down-right at slope 0.5 on screen, so skew(0, atan(0.5)) lays the plate
+// flush with that face.
+function PlatformEdgePlate({ platform, projection }: { platform: Platform; projection: Projection }) {
+  const r = platform.rect;
+  const c3 = projection.worldToScreen({ x: r.x, y: r.y + r.h });
+  const c2 = projection.worldToScreen({ x: r.x + r.w, y: r.y + r.h });
+  const ref = useRef<PIXI.Container>(null);
+  useEffect(() => {
+    ref.current?.skew.set(0, Math.atan(0.5));
+  }, []);
+  const plateW = platform.name.length * 30 + 72;
+  const plateH = 48;
+  const draw = useCallback(
+    (g: PIXI.Graphics) => {
+      g.clear();
+      g.lineStyle(8, RIM_CYAN, 0.1);
+      g.drawRoundedRect(-plateW / 2, -plateH / 2, plateW, plateH, 8);
+      g.lineStyle(2.5, RIM_CYAN_HOT, 0.9);
+      g.beginFill(0x070b14, 0.92);
+      g.drawRoundedRect(-plateW / 2, -plateH / 2, plateW, plateH, 8);
+      g.endFill();
+    },
+    [plateW],
+  );
+  return (
+    <Container ref={ref} x={(c3.x + c2.x) / 2} y={(c3.y + c2.y) / 2 + SLAB_T / 2}>
+      <Graphics draw={draw} />
+      <Text text={platform.name} anchor={0.5} style={PLATE_STYLE} />
+    </Container>
+  );
+}
 
 export function IsoMap({
   width,
@@ -83,6 +131,60 @@ export function IsoMap({
       g.hitArea = new PIXI.Rectangle(minX, minY, Math.max(...xs) - minX, Math.max(...ys) - minY);
     },
     [platforms, bridges, width, height, projection],
+  );
+
+  // Side faces: extrude each platform down by SLAB_T. Only the two camera-facing
+  // faces exist in a 2:1 iso view (below the c3→c2 and c2→c1 edges).
+  const drawSlabSides = useCallback(
+    (g: PIXI.Graphics) => {
+      g.clear();
+      for (const p of platforms) {
+        const r = p.rect;
+        const c1 = projection.worldToScreen({ x: r.x + r.w, y: r.y });
+        const c2 = projection.worldToScreen({ x: r.x + r.w, y: r.y + r.h });
+        const c3 = projection.worldToScreen({ x: r.x, y: r.y + r.h });
+        g.beginFill(SLAB_LEFT);
+        g.drawPolygon([c3.x, c3.y, c2.x, c2.y, c2.x, c2.y + SLAB_T, c3.x, c3.y + SLAB_T]);
+        g.endFill();
+        g.beginFill(SLAB_RIGHT);
+        g.drawPolygon([c2.x, c2.y, c1.x, c1.y, c1.x, c1.y + SLAB_T, c2.x, c2.y + SLAB_T]);
+        g.endFill();
+        // Bottom edges get a faint line so the slab reads as a crisp volume.
+        g.lineStyle(2, GRID_LINE, 0.4);
+        g.moveTo(c3.x, c3.y + SLAB_T);
+        g.lineTo(c2.x, c2.y + SLAB_T);
+        g.lineTo(c1.x, c1.y + SLAB_T);
+        g.lineStyle(0);
+      }
+    },
+    [platforms, projection],
+  );
+
+  // Soft cyan pool of light beneath each slab — sells the antigravity hover.
+  const drawUnderGlow = useCallback(
+    (g: PIXI.Graphics) => {
+      g.clear();
+      for (const p of platforms) {
+        const r = p.rect;
+        const c1 = projection.worldToScreen({ x: r.x + r.w, y: r.y });
+        const c2 = projection.worldToScreen({ x: r.x + r.w, y: r.y + r.h });
+        const c3 = projection.worldToScreen({ x: r.x, y: r.y + r.h });
+        const cx = (c3.x + c1.x) / 2;
+        const cy = c2.y + SLAB_T + 26;
+        const rx = ((c1.x - c3.x) / 2) * 0.8;
+        const layers: [number, number][] = [
+          [1, 0.05],
+          [0.7, 0.07],
+          [0.45, 0.1],
+        ];
+        for (const [f, a] of layers) {
+          g.beginFill(RIM_CYAN, a);
+          g.drawEllipse(cx, cy, rx * f, rx * f * 0.22);
+          g.endFill();
+        }
+      }
+    },
+    [platforms, projection],
   );
 
   // One glowing rim per platform: stacked translucent perimeter strokes fake a
@@ -207,6 +309,11 @@ export function IsoMap({
 
   return (
     <Container>
+      {/* Paint order: glow pool → slab sides → floor (keeps the hitArea) → fx. */}
+      <Pulse periodMs={5200} min={0.6} max={1}>
+        <Graphics draw={drawUnderGlow} />
+      </Pulse>
+      <Graphics draw={drawSlabSides} />
       <Graphics
         interactive
         draw={drawFloor}
@@ -223,13 +330,18 @@ export function IsoMap({
         <Graphics draw={drawProps} />
       </Pulse>
       <TickGraphics render={drawPylonParticles} />
+      {platforms.map((p) => (
+        <PlatformEdgePlate key={`plate-${p.name}`} platform={p} projection={projection} />
+      ))}
       {platforms.map((p) => {
         const pos = projection.worldToScreenCenter({
           x: p.rect.x + p.rect.w / 2,
           y: p.rect.y + p.rect.h / 2,
         });
         return (
-          <Text key={p.name} text={p.name} anchor={0.5} x={pos.x} y={pos.y} alpha={0.55} style={LABEL_STYLE} />
+          // Dimmed now that the edge plates carry the names; Pack 4 makes this
+          // zoom-reactive (fade out as you zoom in).
+          <Text key={p.name} text={p.name} anchor={0.5} x={pos.x} y={pos.y} alpha={0.22} style={LABEL_STYLE} />
         );
       })}
     </Container>
