@@ -12,7 +12,7 @@ const CAST: Record<string, string> = {
   Nova: 'iso-agent-5',
   Orion: 'iso-agent-4',
   Vega: 'iso-agent-2',
-  Lyra: 'iso-agent-3',
+  Lyra: 'robot-analyst',
   Atlas: 'iso-agent-7',
   Iris: 'iso-agent-1',
 };

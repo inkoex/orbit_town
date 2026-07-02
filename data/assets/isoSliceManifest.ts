@@ -78,6 +78,8 @@ export const AVATAR_REGISTRY: Record<
       return [id, framesIn(id)];
     }),
   ),
+  // First Tripo-generated avatar (image → 3D → rig → walk → bake). Phase 0b spike.
+  'robot-analyst': framesIn('robot-analyst'),
 };
 
 // Unregistered avatarId falls back to the original single model (top-level paths).

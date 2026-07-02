@@ -142,6 +142,9 @@ export const isoCharacters = [
     name: `iso-agent-${i + 1}`,
     ...ISO_AVATAR_META,
   })),
+  // First Tripo-generated avatar (Phase 0b spike). Same placeholder metadata;
+  // real iso frames come from AVATAR_REGISTRY['robot-analyst'].
+  { name: 'robot-analyst', ...ISO_AVATAR_META },
 ];
 
 export const isoDescriptions = [
