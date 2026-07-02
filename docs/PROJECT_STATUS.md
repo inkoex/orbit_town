@@ -14,6 +14,7 @@
 - **아바타 슬라이스 1+2 완료**: Kenney Mini 렌더 파이프라인 → 테마-aware Asset Contract → 게임 연결(슬라이스1 `01a78ae`). **슬라이스2(`7baa6c9`/`3430bb7`/`d687232`): 12종 전부 렌더(`iso-agent-1..12`, `avatar-choices.png` 참조) + `AVATAR_REGISTRY`/`isoCharacters` 등록 + 6명에 색 구분 캐스팅**(Nova흰/Orion회/Vega노랑/Lyra빨강/Atlas초록/Iris퍼플). **재시드 없이** `recastAvatars:recast`로 `playerDescriptions.character` 6행만 패치(reactive→즉시 반영, 월드 Frozen 유지, ~6 write). 클라우드 dev에 적용 완료(patched 6/6). 4방향 워크 정상, iso 3/4 뷰, 발밑 glow.
   - **yaw 방향 버그 수정**(`f9cafc6`): 첫 렌더는 `extract.sh`가 render.html yawOffset(-45)을 0으로 덮어써 아바타가 진행방향 대비 45° 틀어짐. YAW_OFFSET=-45로 12개 재렌더 + extract.sh 기본값 -45로 수정. (DIRS=(sw se ne nw) 기준 -45가 정답.)
   - **맵/HUD 후속 수정**: iso 기본 배율 fit(`c338eec`, 콘텐츠 중심+화면 채움+좌하단 여백 제거), 하늘 가로줄 제거(`1d48259`, 히트-렉트 alpha 엣지→hitArea).
+  - **우주 배경(별필드) 폴리시**(`83c3e11`→`fc0d368`→`d782399`): 원래 CSS radial 점 4개(우연처럼 보임)를 → `.game-starfield`(`src/index.css`)에 별 ~190개(밝기/색 다양, 밝은 별 glow) + 성운 워시 4개 + **달(좌상단)·행성(좌하단)** 셰이딩 구체로. 화면 고정 CSS(투명 PIXI 캔버스 뒤에 painted), 비용 0. 원인은 코덱스가 Game.tsx 인라인 스타일에서 찾음(내가 index.css만 뒤져 놓침). 생성기: scratch `genstars4.mjs`(별/천체 수치 조정 지점). 검증은 실측 2560×1340 독립 렌더(PIXI 크래시로 인앱 스샷 불가).
 - **대화 페이싱 튜닝** (`16154bb`): `convex/constants.ts` — 대화 빈도↓·메시지 텀↑·대화 길이↓. 배포됨.
 - **LLM 복구**: OpenAI 잔고 0이던 게 원인(agents 동결) → $30 충전으로 정상. Convex 쿼터/write-conflict 아니었음.
 - 모션 폴리시 완료 (`b9d27fa`).
