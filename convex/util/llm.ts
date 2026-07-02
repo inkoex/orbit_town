@@ -182,6 +182,21 @@ export async function chatCompletion(
         throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(json));
       }
       console.log(content);
+      // Cost telemetry (opt-in): `convex env set LLM_USAGE_LOG true` to enable.
+      // Convex tags each log line with the enclosing action (agentGenerateMessage
+      // = dialogue, agentRememberConversation = summary/reflection), so grepping
+      // LLM_USAGE breaks spend down by role. Off by default = no log noise; same
+      // env-gated pattern as CONVEX_USAGE_GUARD.
+      if (process.env.LLM_USAGE_LOG === 'true') {
+        console.log(
+          'LLM_USAGE ' +
+            JSON.stringify({
+              pt: json.usage?.prompt_tokens ?? 0,
+              ct: json.usage?.completion_tokens ?? 0,
+              model: body.model,
+            }),
+        );
+      }
       return content;
     }
   });
@@ -249,6 +264,11 @@ export async function fetchEmbeddingBatch(texts: string[]) {
   }
   const allembeddings = json.data;
   allembeddings.sort((a, b) => a.index - b.index);
+  if (process.env.LLM_USAGE_LOG === 'true') {
+    console.log(
+      'EMB_USAGE ' + JSON.stringify({ tokens: json.usage?.total_tokens ?? 0, n: texts.length }),
+    );
+  }
   return {
     ollama: false as const,
     embeddings: allembeddings.map(({ embedding }) => embedding),
