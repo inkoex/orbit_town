@@ -77,13 +77,20 @@ new GLTFLoader().load(
     let box = meshWorldBox(model);
     const rawH = box.max.y - box.min.y || 1;
     window.__modelHeight = rawH;
-    model.scale.setScalar(TARGET_HEIGHT / rawH);
+    const baseScale = TARGET_HEIGHT / rawH;
+    model.scale.setScalar(baseScale);
     model.updateWorldMatrix(true, true);
     box = meshWorldBox(model); // recompute after scaling
     model.position.y -= box.min.y; // feet at y=0
     pivot.add(model);
     loadedModel = model;
     window.__dbg = { rawH, scaledH: box.max.y - box.min.y };
+    // Height-scale multiplier on top of the normalization. Models whose total
+    // mesh height includes tall thin gear (antennae, hats) normalize their BODY
+    // too small — this knob (or extract.sh's auto-calibration) compensates.
+    window.__setHeightScale = (f) => {
+      model.scale.setScalar(baseScale * f);
+    };
     window.__animCount = gltf.animations.length;
     window.__animNames = gltf.animations.map((a) => a.name);
     // Body-center bone: a stable horizontal reference for centering. A full-mesh
@@ -140,5 +147,29 @@ window.__renderFrame = (dirIndex, animTime) => {
   }
   renderer.render(scene, cam);
   return canvas.toDataURL('image/png');
+};
+
+// Measure the BODY's pixel height in the last rendered frame: scan rows whose
+// opaque-pixel count ≥ minPx, so thin gear (antennae) doesn't count as "top".
+// Drives extract.sh's HEIGHT_SCALE=auto calibration against the Kenney ref.
+window.__measureBodyH = (minPx = 40) => {
+  // Re-render NOW: the WebGL buffer is cleared after present (no
+  // preserveDrawingBuffer), so reading it in a later call sees blank pixels.
+  renderer.render(scene, cam);
+  const c2 = document.createElement('canvas');
+  c2.width = W;
+  c2.height = H;
+  const g = c2.getContext('2d');
+  g.drawImage(canvas, 0, 0);
+  const d = g.getImageData(0, 0, W, H).data;
+  let top = -1, bot = -1;
+  for (let y = 0; y < H; y++) {
+    let n = 0;
+    for (let x = 0; x < W; x++) {
+      if (d[(y * W + x) * 4 + 3] > 16) n++;
+    }
+    if (n >= minPx) { if (top < 0) top = y; bot = y; }
+  }
+  return bot - top + 1;
 };
 </script>

@@ -35,6 +35,11 @@ Writes 20 frames (4 dirs × [idle + 4 walk]) to `public/assets/iso-slice/<avatar
   `iso-agent`). (Kenney needed -45.)
 - `FRUSTUM` (0.80) / `LOOKY` (0.72): zoom / vertical framing. Rarely needed now that
   height is normalized; nudge only for unusually wide/tall silhouettes.
+- `HEIGHT_SCALE` (default **auto**): normalization fits the TOTAL mesh height, so
+  tall thin gear (antennae/hats) shrinks the body vs Kenney. `auto` renders a
+  probe frame, measures the body pixel height (rows with ≥40 opaque px — thin
+  antennae don't count) and scales to the Kenney reference (221px). Pass a number
+  to override. The analyst robot auto-calibrated to 1.094.
 - `WALK_LEN`: **one gait cycle in seconds — NOT the full clip length.** Tripo/Mixamo
   walk clips often contain several steps (e.g. the analyst robot's clip is 2.375s
   ≈ 4 steps); sampling the whole clip into 4 frames aliases the stride and plays
