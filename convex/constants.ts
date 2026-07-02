@@ -88,4 +88,6 @@ export const CHECKPOINT_INTERVAL_MS = 30_000;
 // How long processed engine inputs are retained before being vacuumed.
 export const INPUT_RETENTION_MS = 60 * 60 * 1000;
 // How long a development world may run before the usage guard freezes it.
-export const USAGE_GUARD_LIMIT_MS = 60 * 60 * 1000;
+// 5 minutes while the July DB I/O quota is blown: unfreeze = a short viewing
+// window, then the guard cuts the engine even if an open tab keeps it "viewed".
+export const USAGE_GUARD_LIMIT_MS = 5 * 60 * 1000;
