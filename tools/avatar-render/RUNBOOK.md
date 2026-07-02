@@ -35,7 +35,11 @@ Writes 20 frames (4 dirs × [idle + 4 walk]) to `public/assets/iso-slice/<avatar
   `iso-agent`). (Kenney needed -45.)
 - `FRUSTUM` (0.80) / `LOOKY` (0.72): zoom / vertical framing. Rarely needed now that
   height is normalized; nudge only for unusually wide/tall silhouettes.
-- `WALK_LEN`: the walk clip's duration in seconds (read `window.__walkLen`).
+- `WALK_LEN`: **one gait cycle in seconds — NOT the full clip length.** Tripo/Mixamo
+  walk clips often contain several steps (e.g. the analyst robot's clip is 2.375s
+  ≈ 4 steps); sampling the whole clip into 4 frames aliases the stride and plays
+  back as pogo-hopping in-game. Use clip duration ÷ number of step-pairs (analyst
+  robot: 2.375/2 = 1.1875). Eyeball the 4 walk frames: legs must alternate.
 
 ## Register in the game
 1. `data/assets/isoSliceManifest.ts` → add the id to `AVATAR_REGISTRY` (the 1..12

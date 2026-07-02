@@ -122,16 +122,18 @@ window.__renderFrame = (dirIndex, animTime) => {
   if (mixer) mixer.setTime(animTime < 0 ? 0 : animTime);
   // Lock the character in place every frame — a walk clip with ROOT MOTION would
   // otherwise put the body at a different spot per sampled phase (drift/jitter).
-  // Horizontal: shift so the BODY BONE projects to canvas center-x (antennae/arms
-  // ignored). Vertical: drop the visible mesh's lowest point (feet) to the floor.
+  // Center the BODY BONE on the world vertical axis (x=z=0): that axis projects
+  // to the canvas centerline AND pins the depth along camera-forward. Screen-x
+  // centering alone is not enough — in a tilted ortho camera a depth offset
+  // shifts screen-Y, so per-yaw depth differences made the sprite sit lower on
+  // some directions (the "sinks when walking up" bug). Vertical: drop the
+  // visible mesh's lowest point (feet/base) to the floor.
   if (loadedModel && bodyBone) {
     pivot.updateWorldMatrix(true, true);
-    cam.updateMatrixWorld(true);
     const p = new THREE.Vector3();
     bodyBone.getWorldPosition(p);
-    const ndcX = p.project(cam).x; // -1..1 across the frame width
-    const camRight = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0).normalize();
-    pivot.position.addScaledVector(camRight, -ndcX * frustum * aspect);
+    pivot.position.x -= p.x;
+    pivot.position.z -= p.z;
     pivot.updateWorldMatrix(true, true);
     const b = meshWorldBox(pivot);
     pivot.position.y -= b.min.y;
