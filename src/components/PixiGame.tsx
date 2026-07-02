@@ -22,6 +22,7 @@ import { Container } from '@pixi/react';
 import { createIsoProjection } from '../rendering/projection/isoProjection';
 import { IsoMap } from './isometric/IsoMap.tsx';
 import { IsoBillboard } from './isometric/IsoBillboard.tsx';
+import { IsoPropsLayer } from './isometric/IsoProps.tsx';
 import { Bob } from './isometric/AnimatedContainer.tsx';
 import { IsoMapObject } from './isometric/IsoMapObject.tsx';
 import { isWalkableTile } from '../rendering/isWalkableTile';
@@ -247,7 +248,11 @@ export const PixiGame = (props: {
         <>
           {/* The jumbotron drifts slowly in the sky — sells the antigravity float. */}
           <Bob periodMs={6500} amplitudePx={16}>
-            <IsoBillboard projection={isoProjection} anchorTile={{ x: 2, y: -3.5 }} />
+            <IsoBillboard
+              projection={isoProjection}
+              anchorTile={{ x: 2, y: -3.5 }}
+              agentsOnline={props.game.world.agents.size}
+            />
           </Bob>
           <IsoMap
             width={width}
@@ -261,6 +266,7 @@ export const PixiGame = (props: {
           {/* Walls, furniture and characters share one sortable container so
               they occlude each other by isoDepthKey (e.g. behind the desk). */}
           <Container sortableChildren>
+            <IsoPropsLayer projection={isoProjection} />
             {isoObjects.map((o, i) => (
               <IsoMapObject
                 key={`obj-${i}`}

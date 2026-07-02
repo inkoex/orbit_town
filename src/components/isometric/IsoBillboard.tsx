@@ -1,5 +1,5 @@
 import { Container, Graphics, Text } from '@pixi/react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 import type { Projection } from '../../rendering/projection/Projection';
 import { CyclingText, TickGraphics } from './AnimatedContainer';
@@ -39,19 +39,24 @@ const STATUS_STYLE = new PIXI.TextStyle({
   fill: 0x7fe9f5,
 });
 
-const STATUS_LINES = [
-  '◢ AGENTS ONLINE',
-  '◢ MEMORY SYNC OK',
-  '◢ UPLINK 100%',
-  '◢ ORBIT STABLE',
-];
+const GLYPH_STYLE = new PIXI.TextStyle({
+  fontFamily: 'monospace',
+  fontSize: 64,
+  fontWeight: '700',
+  fill: 0x070b14,
+});
+const GLYPH_LETTERS = 'ANTIGRAV';
+const GLYPH_SIZE = 120;
+const GLYPH_GAP = 24;
 
 interface Props {
   projection: Projection;
   anchorTile: { x: number; y: number };
+  // Live agent count shown in the status ticker.
+  agentsOnline?: number;
 }
 
-export function IsoBillboard({ projection, anchorTile }: Props) {
+export function IsoBillboard({ projection, anchorTile, agentsOnline }: Props) {
   const base = projection.worldToScreen(anchorTile);
   const ref = useRef<PIXI.Container>(null);
   useEffect(() => {
@@ -83,10 +88,11 @@ export function IsoBillboard({ projection, anchorTile }: Props) {
 
   // Live content: the colour bands shimmer in a staggered wave and a bright
   // scanline sweeps top-to-bottom — the jumbotron looks like it's playing.
+  // (Three bands; the fourth slot hosts the static glyph mosaic below.)
   const drawScreen = useCallback(
     (g: PIXI.Graphics, t: number) => {
       g.clear();
-      BAND_COLORS.forEach((c, i) => {
+      BAND_COLORS.slice(0, 3).forEach((c, i) => {
         const a = pulseValue(t, 2400, 0.05, 0.2, i * 0.18);
         g.beginFill(c, a);
         g.drawRect(left + 44, top + 110 + i * 155, PANEL_W - 88, 120);
@@ -104,14 +110,52 @@ export function IsoBillboard({ projection, anchorTile }: Props) {
     [left, top],
   );
 
+  // Colourful glyph mosaic (the reference screen's letter chips) — static, so
+  // it costs nothing per frame.
+  const glyphRowW = GLYPH_LETTERS.length * GLYPH_SIZE + (GLYPH_LETTERS.length - 1) * GLYPH_GAP;
+  const glyphY = top + 575;
+  const drawGlyphChips = useCallback(
+    (g: PIXI.Graphics) => {
+      g.clear();
+      for (let i = 0; i < GLYPH_LETTERS.length; i++) {
+        const gx = -glyphRowW / 2 + i * (GLYPH_SIZE + GLYPH_GAP);
+        g.beginFill(BAND_COLORS[i % BAND_COLORS.length], 0.9);
+        g.drawRoundedRect(gx, glyphY, GLYPH_SIZE, GLYPH_SIZE, 12);
+        g.endFill();
+      }
+    },
+    [glyphRowW, glyphY],
+  );
+
+  const statusLines = useMemo(
+    () => [
+      `◢ AGENTS ONLINE: ${agentsOnline ?? '–'}`,
+      '◢ MEMORY SYNC OK',
+      '◢ UPLINK 100%',
+      '◢ ORBIT STABLE',
+    ],
+    [agentsOnline],
+  );
+
   return (
     <Container ref={ref} x={base.x} y={base.y}>
       <Graphics draw={drawPanel} />
       <TickGraphics render={drawScreen} />
+      <Graphics draw={drawGlyphChips} />
+      {GLYPH_LETTERS.split('').map((ch, i) => (
+        <Text
+          key={`glyph-${i}`}
+          text={ch}
+          anchor={0.5}
+          x={-glyphRowW / 2 + i * (GLYPH_SIZE + GLYPH_GAP) + GLYPH_SIZE / 2}
+          y={glyphY + GLYPH_SIZE / 2}
+          style={GLYPH_STYLE}
+        />
+      ))}
       <Text text="● LIVE" x={left + 48} y={top + 42} style={LIVE_STYLE} />
       <Text text="ORBIT STATION" anchor={[0.5, 0.5]} x={0} y={0} style={TITLE_STYLE} />
       <CyclingText
-        texts={STATUS_LINES}
+        texts={statusLines}
         intervalMs={2200}
         style={STATUS_STYLE}
         x={left + 48}
