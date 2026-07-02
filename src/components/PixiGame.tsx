@@ -260,6 +260,7 @@ export const PixiGame = (props: {
             platforms={PLATFORMS}
             bridges={BRIDGES}
             projection={isoProjection}
+            viewportRef={viewportRef}
             onpointerup={onMapPointerUp}
             onpointerdown={onMapPointerDown}
           />

@@ -1,5 +1,5 @@
 import { Container, Graphics, Text, useTick } from '@pixi/react';
-import { useRef } from 'react';
+import { MutableRefObject, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 import { bobOffset, cycleIndex, pulseValue } from './animation';
 
@@ -74,6 +74,28 @@ export function TickGraphics({ render, zIndex }: TickGraphicsProps) {
     if (ref.current) render(ref.current, clock.current);
   });
   return <Graphics ref={ref} zIndex={zIndex} />;
+}
+
+interface ZoomFadeProps {
+  // Structural type so this stays viewport-library-agnostic (pixi-viewport's
+  // Viewport satisfies it).
+  viewportRef: MutableRefObject<{ scale: { x: number } } | undefined>;
+  alphaFor: (scale: number) => number;
+  children?: React.ReactNode;
+}
+
+// Drives its children's alpha from the current camera zoom — e.g. orientation
+// labels that matter zoomed-out but clutter zoomed-in. Ticker-driven like
+// Bob/Pulse: no React re-render on pan/zoom.
+export function ZoomFade({ viewportRef, alphaFor, children }: ZoomFadeProps) {
+  const ref = useRef<PIXI.Container>(null);
+  useTick(() => {
+    const scale = viewportRef.current?.scale.x;
+    if (scale !== undefined && ref.current) {
+      ref.current.alpha = alphaFor(scale);
+    }
+  });
+  return <Container ref={ref}>{children}</Container>;
 }
 
 interface CyclingTextProps {

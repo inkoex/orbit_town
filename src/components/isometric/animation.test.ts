@@ -1,4 +1,11 @@
-import { bobOffset, cycleIndex, flowFractions, oscillate01, pulseValue } from './animation';
+import {
+  bobOffset,
+  cycleIndex,
+  flowFractions,
+  oscillate01,
+  pulseValue,
+  remapClamped,
+} from './animation';
 
 describe('oscillate01', () => {
   it('stays within [0, 1]', () => {
@@ -96,5 +103,17 @@ describe('cycleIndex', () => {
     expect(cycleIndex(2000, 2000, 3)).toBe(1);
     expect(cycleIndex(4000, 2000, 3)).toBe(2);
     expect(cycleIndex(6000, 2000, 3)).toBe(0); // wraps back
+  });
+});
+
+describe('remapClamped', () => {
+  it('maps linearly inside the range', () => {
+    expect(remapClamped(0.5, 0, 1, 0, 100)).toBeCloseTo(50);
+    expect(remapClamped(0.61, 0.32, 0.9, 0.35, 0.06)).toBeCloseTo(0.205);
+  });
+
+  it('clamps outside the input range', () => {
+    expect(remapClamped(-5, 0, 1, 0.35, 0.06)).toBeCloseTo(0.35);
+    expect(remapClamped(99, 0, 1, 0.35, 0.06)).toBeCloseTo(0.06);
   });
 });

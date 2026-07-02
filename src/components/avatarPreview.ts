@@ -1,4 +1,15 @@
 import { characters } from '../../data/characters';
+import { AVATAR_REGISTRY } from '../../data/assets/isoSliceManifest';
+
+// Iso avatars have no meaningful spritesheet (their characters.ts entries carry
+// placeholder f1 metadata just to pass validation — that's what rendered as the
+// identical blocky crops in the creator). Their real art is per-avatar static
+// PNGs; the front-facing idle frame makes the preview.
+export function getIsoAvatarPreviewUrl(characterName: string): string | undefined {
+  return characterName in AVATAR_REGISTRY
+    ? `/ai-town/assets/iso-slice/${characterName}/character-sw-idle.png`
+    : undefined;
+}
 
 export function getAvatarPreviewLayout(characterName: string, scale = 2) {
   const character = characters.find((candidate) => candidate.name === characterName);

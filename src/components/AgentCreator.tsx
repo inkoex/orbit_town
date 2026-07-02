@@ -4,9 +4,22 @@ import { useSendInput } from '../hooks/sendInput';
 import { creatableCharacters } from '../../data/characters';
 import { themeFromTileSetUrl } from '../../convex/util/theme';
 import { ServerGame } from '../hooks/serverGame';
-import { getAvatarPreviewLayout } from './avatarPreview';
+import { getAvatarPreviewLayout, getIsoAvatarPreviewUrl } from './avatarPreview';
 
 function AvatarPreview({ characterName, scale = 2 }: { characterName: string; scale?: number }) {
+  // Iso avatars: real per-avatar art (front idle PNG, 256x512, high-res — no
+  // pixelated rendering). The spritesheet path below would show their
+  // placeholder f1 metadata instead (the old "checkerboard of identical crops").
+  const isoUrl = getIsoAvatarPreviewUrl(characterName);
+  if (isoUrl) {
+    return (
+      <img
+        src={isoUrl}
+        alt={characterName}
+        style={{ width: 40, height: 80, objectFit: 'contain' }}
+      />
+    );
+  }
   const layout = getAvatarPreviewLayout(characterName, scale);
   if (!layout) return null;
   return (
@@ -74,7 +87,7 @@ export function AgentCreator({ engineId, game }: { engineId: Id<'engines'>; game
                   key={candidate.name}
                   onClick={() => setCharacter(candidate.name)}
                   className={`border-2 p-1 flex items-center justify-center ${
-                    character === candidate.name ? 'border-clay-300' : 'border-transparent'
+                    character === candidate.name ? 'border-cyan-300' : 'border-transparent'
                   }`}
                 >
                   <AvatarPreview characterName={candidate.name} />

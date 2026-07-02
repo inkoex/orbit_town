@@ -130,10 +130,6 @@ export default function PlayerDetails({
       }),
     );
   };
-  // const pendingSuffix = (inputName: string) =>
-  //   [...inflightInputs.values()].find((i) => i.name === inputName) ? ' opacity-50' : '';
-
-  const pendingSuffix = (s: string) => '';
   return (
     <>
       <div className="flex gap-4">
@@ -142,79 +138,60 @@ export default function PlayerDetails({
             {playerDescription?.name}
           </h2>
         </div>
-        <a
-          className="button text-white shadow-solid text-2xl cursor-pointer pointer-events-auto"
+        <button
+          type="button"
+          className="hud-btn pointer-events-auto"
           onClick={() => setSelectedElement(undefined)}
         >
-          <h2 className="h-full bg-clay-700">
-            <img className="w-4 h-4 sm:w-5 sm:h-5" src={closeImg} />
-          </h2>
-        </a>
+          <img className="w-4 h-4 sm:w-5 sm:h-5" src={closeImg} />
+        </button>
       </div>
       {canInvite && (
-        <a
-          className={
-            'mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto' +
-            pendingSuffix('startConversation')
-          }
+        <button
+          type="button"
+          className="hud-btn hud-glass mt-6 w-full justify-center text-sm pointer-events-auto"
           onClick={onStartConversation}
         >
-          <div className="h-full bg-clay-700 text-center">
-            <span>Start conversation</span>
-          </div>
-        </a>
+          Start conversation
+        </button>
       )}
+      {/* Inert states deliberately skip .hud-btn (it hardcodes cursor:pointer
+          and a hover fill) — a quiet glass chip reads as "in progress". */}
       {waitingForAccept && (
-        <a className="mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto opacity-50">
-          <div className="h-full bg-clay-700 text-center">
-            <span>Waiting for accept...</span>
-          </div>
-        </a>
+        <div className="hud-glass mt-6 w-full rounded-md px-3 py-2 text-center text-sm uppercase tracking-wide text-cyan-300/50">
+          Waiting for accept...
+        </div>
       )}
       {waitingForNearby && (
-        <a className="mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto opacity-50">
-          <div className="h-full bg-clay-700 text-center">
-            <span>Walking over...</span>
-          </div>
-        </a>
+        <div className="hud-glass mt-6 w-full rounded-md px-3 py-2 text-center text-sm uppercase tracking-wide text-cyan-300/50">
+          Walking over...
+        </div>
       )}
       {inConversationWithMe && (
-        <a
-          className={
-            'mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto' +
-            pendingSuffix('leaveConversation')
-          }
+        <button
+          type="button"
+          className="hud-btn hud-glass mt-6 w-full justify-center text-sm pointer-events-auto"
           onClick={onLeaveConversation}
         >
-          <div className="h-full bg-clay-700 text-center">
-            <span>Leave conversation</span>
-          </div>
-        </a>
+          Leave conversation
+        </button>
       )}
       {haveInvite && (
         <>
-          <a
-            className={
-              'mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto' +
-              pendingSuffix('acceptInvite')
-            }
+          <button
+            type="button"
+            className="hud-btn hud-glass mt-6 w-full justify-center text-sm pointer-events-auto"
             onClick={onAcceptInvite}
           >
-            <div className="h-full bg-clay-700 text-center">
-              <span>Accept</span>
-            </div>
-          </a>
-          <a
-            className={
-              'mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto' +
-              pendingSuffix('rejectInvite')
-            }
+            Accept
+          </button>
+          <button
+            type="button"
+            className="hud-btn hud-glass mt-6 w-full justify-center text-sm pointer-events-auto"
             onClick={onRejectInvite}
           >
-            <div className="h-full bg-clay-700 text-center">
-              <span>Reject</span>
-            </div>
-          </a>
+            Reject
+          </button>
         </>
       )}
       {!playerConversation && player.activity && player.activity.until > Date.now() && (

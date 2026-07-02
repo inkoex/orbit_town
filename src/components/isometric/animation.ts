@@ -40,3 +40,16 @@ export function flowFractions(timeMs: number, periodMs: number, count: number): 
 export function cycleIndex(timeMs: number, intervalMs: number, length: number): number {
   return Math.floor(timeMs / intervalMs) % length;
 }
+
+// Linear remap of v from [inMin, inMax] to [outMin, outMax], clamped to the
+// output range — e.g. mapping viewport zoom onto a label alpha.
+export function remapClamped(
+  v: number,
+  inMin: number,
+  inMax: number,
+  outMin: number,
+  outMax: number,
+): number {
+  const t = Math.min(1, Math.max(0, (v - inMin) / (inMax - inMin)));
+  return outMin + (outMax - outMin) * t;
+}

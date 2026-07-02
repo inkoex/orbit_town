@@ -68,6 +68,12 @@ body {
   background-image:
     radial-gradient(11px 11px at 12.1% 13.9%, rgba(245,248,255,0.95), transparent),
     radial-gradient(58px 58px at 3.5% 95%, rgba(130,205,238,0.5), transparent),
+    /* moon craters — hand-edited on top of the genstars output (calc() offsets
+       track the 13%/15% moon center); re-running the generator must re-apply */
+    radial-gradient(7px 7px at calc(13% + 8px) calc(15% + 6px), rgba(52,57,82,0.65) 0 55%, transparent 75%),
+    radial-gradient(5px 5px at calc(13% - 4px) calc(15% + 11px), rgba(46,50,71,0.6) 0 55%, transparent 75%),
+    radial-gradient(9px 9px at calc(13% + 13px) calc(15% - 2px), rgba(46,50,71,0.5) 0 55%, transparent 75%),
+    radial-gradient(5px 5px at calc(13% + 2px) calc(15% + 1px), rgba(52,57,82,0.5) 0 55%, transparent 75%),
     radial-gradient(46px 46px at 13% 15%, #cfd4e0 0%, #9aa0b4 46%, #565b73 72%, #2e3247 82%, transparent 84%),
     radial-gradient(190px 190px at 5% 100%, #3f78a6 0%, #2b587f 40%, #183a5a 64%, #0c2338 80%, transparent 84%),
     radial-gradient(70px 70px at 13% 15%, rgba(150,180,230,0.20), transparent 80%),

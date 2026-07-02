@@ -1,10 +1,10 @@
 import { Container, Graphics, Text } from '@pixi/react';
-import { useCallback, useEffect, useRef } from 'react';
+import { MutableRefObject, useCallback, useEffect, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 import type { Projection } from '../../rendering/projection/Projection';
 import type { Platform, Rect } from '../../../data/isoVerticalSlice';
-import { Pulse, TickGraphics } from './AnimatedContainer';
-import { flowFractions } from './animation';
+import { Pulse, TickGraphics, ZoomFade } from './AnimatedContainer';
+import { flowFractions, remapClamped } from './animation';
 
 interface Props {
   width: number;
@@ -12,6 +12,8 @@ interface Props {
   platforms: Platform[];
   bridges: Rect[];
   projection: Projection;
+  // Camera handle for zoom-reactive fading of the floor labels.
+  viewportRef?: MutableRefObject<{ scale: { x: number } } | undefined>;
   onpointerup?: (e: any) => void;
   onpointerdown?: (e: any) => void;
 }
@@ -87,6 +89,7 @@ export function IsoMap({
   platforms,
   bridges,
   projection,
+  viewportRef,
   onpointerup,
   onpointerdown,
 }: Props) {
@@ -333,17 +336,29 @@ export function IsoMap({
       {platforms.map((p) => (
         <PlatformEdgePlate key={`plate-${p.name}`} platform={p} projection={projection} />
       ))}
-      {platforms.map((p) => {
-        const pos = projection.worldToScreenCenter({
-          x: p.rect.x + p.rect.w / 2,
-          y: p.rect.y + p.rect.h / 2,
+      {/* Floor labels are orientation hints for the zoomed-out view; the edge
+          plates carry the names up close, so these fade away as you zoom in. */}
+      {(() => {
+        const labels = platforms.map((p) => {
+          const pos = projection.worldToScreenCenter({
+            x: p.rect.x + p.rect.w / 2,
+            y: p.rect.y + p.rect.h / 2,
+          });
+          return (
+            <Text key={p.name} text={p.name} anchor={0.5} x={pos.x} y={pos.y} style={LABEL_STYLE} />
+          );
         });
-        return (
-          // Dimmed now that the edge plates carry the names; Pack 4 makes this
-          // zoom-reactive (fade out as you zoom in).
-          <Text key={p.name} text={p.name} anchor={0.5} x={pos.x} y={pos.y} alpha={0.22} style={LABEL_STYLE} />
+        return viewportRef ? (
+          <ZoomFade
+            viewportRef={viewportRef}
+            alphaFor={(s) => remapClamped(s, 0.32, 0.9, 0.35, 0.06)}
+          >
+            {labels}
+          </ZoomFade>
+        ) : (
+          <Container alpha={0.22}>{labels}</Container>
         );
-      })}
+      })()}
     </Container>
   );
 }
