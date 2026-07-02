@@ -29,6 +29,8 @@
 
 **🔑 큰 방향 결정 (2026-07-01, 먼저 읽기):** [대화 레이어 결정](design/2026-07-01-conversation-vs-work-layer.md) — 아바타 LLM 잡담은 AI Town의 코어지만 InKoEx엔 **전시/유휴 레이어일 뿐**. 결론: **잡담은 캔드/템플릿으로 (~$0), 진짜 "대화"=작업 협업은 실제 에이전트 채널에**, 화면은 실제 사건 시각화. 이게 비용 실타래(nano·쿨다운·Convex쿼터)의 **근본 레버** — "애초에 그 LLM 대화를 안 하는 것". 구현 체크리스트는 그 문서에. (Obsidian 사본도 있음)
 
+**🔑 아바타 시스템 계획 v2 확정 (2026-07-02):** [avatar-system-plan](design/2026-07-02-avatar-system-plan.md) — 4-AI 교차검증안(v1)을 프로젝트 접합 리뷰로 수정. 핵심: **D0 런타임 유지**(PixiJS+베이크, R3F는 트리거 3개 시), 규모 50/100, **Phase 1 게이트 = 작업 레이어 첫 슬라이스 선행**. **부록 A = Frozen-전시 안무 아키텍처**(Codex 교차검증 합의: worldState 구독/heartbeat 절단이 본질, 절대시간 슬롯 결정론, VisualAgent 분리, 검증=Frozen 30분 I/O 무증가). Phase 0a(IdleChoreographer MVP)가 그 검증 겸용. Obsidian 동기화됨. **팀 확장 = 한 세계·팀=섬 추가**, 세계관 교체는 코스메틱 축 별개.
+
 **비용/인프라 현황:** 모델 nano 전환(env), 쿨다운 3분, **Convex Free plan 초과 → 월드 수동 Freeze로 출혈 정지 중**. 로컬 Convex+Ollama는 "GPU 이미 소유 시에만 무료" — 개인용(내 맥)=로컬 유리, VPS 서비스화=nano API가 오히려 쌈(GPU VPS 비쌈). 근데 위 대화-레이어 결정이 서면 이 비용 문제 자체가 크게 줄어듦.
 - **⚠️ 7월 DB I/O 재초과 사후분석 (07-02)**: 7월 창 리셋 후 1.5일 만에 1.72GB/1GB. 원인 = **`CONVEX_USAGE_GUARD` env var 미설정으로 1시간 자동-Freeze 가드가 계속 꺼져 있었음**(main.ts:111이 env 게이트) + 07-01 저녁 아바타 확인차 unfreeze 후 ORBIT STATION 탭 상시 오픈(하트비트가 lastViewed 갱신→5분 idle-stop 미발동) → 엔진이 수 시간 연속 가동(스텝 1s마다 월드 doc read+write, 30s마다 풀 체크포인트 ≈ 시간당 수백 MB). 어제 폴리시(프론트 전용)·말풍선 구독(Frozen=0)·검증 로드는 무관. **조치: `CONVEX_USAGE_GUARD=true` 설정 완료** → 이제 unfreeze해도 최대 1h 후 자동 freeze. 이번 달은 I/O 이미 초과라 Freeze 유지가 기본, 구경은 짧게.
 
