@@ -41,7 +41,19 @@ window.__setCam = (f, ly) => {
 
 const pivot = new THREE.Group(); // model goes here; yaw gives the 4 directions
 scene.add(pivot);
-let mixer = null, walk = null;
+let mixer = null, walk = null, loadedModel = null;
+
+// World-space bounding box of only the VISIBLE meshes (ignores bone/empty nodes).
+const meshWorldBox = (obj) => {
+  const b = new THREE.Box3();
+  obj.traverse((o) => {
+    if (o.isMesh && o.geometry) {
+      o.geometry.computeBoundingBox();
+      b.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld));
+    }
+  });
+  return b;
+};
 
 const params = new URLSearchParams(location.search);
 const url = params.get('glb');
@@ -62,24 +74,15 @@ new GLTFLoader().load(
     // nodes whose extents can dwarf the mesh (RobotExpressive: mesh ~2.6u but the
     // skeleton bbox is ~149u). Union only isMesh geometry, in world space.
     model.updateWorldMatrix(true, true);
-    const meshBox = (obj) => {
-      const b = new THREE.Box3();
-      obj.traverse((o) => {
-        if (o.isMesh && o.geometry) {
-          o.geometry.computeBoundingBox();
-          b.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld));
-        }
-      });
-      return b;
-    };
-    let box = meshBox(model);
+    let box = meshWorldBox(model);
     const rawH = box.max.y - box.min.y || 1;
     window.__modelHeight = rawH;
     model.scale.setScalar(TARGET_HEIGHT / rawH);
     model.updateWorldMatrix(true, true);
-    box = meshBox(model); // recompute after scaling
+    box = meshWorldBox(model); // recompute after scaling
     model.position.y -= box.min.y; // feet at y=0
     pivot.add(model);
+    loadedModel = model;
     window.__dbg = { rawH, scaledH: box.max.y - box.min.y };
     window.__animCount = gltf.animations.length;
     window.__animNames = gltf.animations.map((a) => a.name);
@@ -101,8 +104,18 @@ window.__yawOffset = -45;
 
 // dirIndex: 0=se,1=sw,2=nw,3=ne. animTime sec (walk phase). idle if animTime<0.
 window.__renderFrame = (dirIndex, animTime) => {
+  pivot.position.set(0, 0, 0);
   pivot.rotation.y = THREE.MathUtils.degToRad(45 + dirIndex * 90 + window.__yawOffset);
   if (mixer) mixer.setTime(animTime < 0 ? 0 : animTime);
+  // Lock the character in place: a walk clip with ROOT MOTION (Tripo/Mixamo walks
+  // translate the body forward) would otherwise put the body at a different spot
+  // in each sampled phase, so the baked frames drift and the in-game sprite jumps.
+  // Re-center horizontally + feet-to-floor every frame → an in-place walk cycle.
+  if (loadedModel) {
+    pivot.updateWorldMatrix(true, true);
+    const b = meshWorldBox(pivot);
+    pivot.position.set(-(b.min.x + b.max.x) / 2, -b.min.y, -(b.min.z + b.max.z) / 2);
+  }
   renderer.render(scene, cam);
   return canvas.toDataURL('image/png');
 };
