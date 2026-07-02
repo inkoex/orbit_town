@@ -279,6 +279,7 @@ export const PixiGame = (props: {
                 onClick={props.setSelectedElement}
                 historicalTime={props.historicalTime}
                 isoProjection={isoProjection}
+                worldId={props.worldId}
               />
             ))}
           </Container>

@@ -12,10 +12,13 @@ import { useHistoricalValue } from '../hooks/useHistoricalValue.ts';
 import { PlayerDescription } from '../../convex/aiTown/playerDescription.ts';
 import { WorldMap } from '../../convex/aiTown/worldMap.ts';
 import { ServerGame } from '../hooks/serverGame.ts';
-import { ISO_DEBUG, ISO_STATE_DEBUG, VIEW_MODE } from '../config/debug';
+import { ISO_BUBBLE_DEBUG, ISO_DEBUG, ISO_STATE_DEBUG, VIEW_MODE } from '../config/debug';
 import { isoWorldToScreenCenter } from '../utils/isoCoords';
 import { IsoCharacter } from './isometric/IsoCharacter';
 import { deriveActiveState, debugActiveState } from './isometric/activeState';
+import { SpeechBubble } from './isometric/SpeechBubble';
+import { ConversationBubble } from './isometric/ConversationBubble';
+import { debugBubbleText, truncateBubbleText } from './isometric/bubble';
 import type { Projection } from '../rendering/projection/Projection';
 
 const PLAYER_COLORS = [0x22d3ee, 0x4ade80, 0xfbbf24, 0xf87171, 0xa78bfa, 0xfb923c];
@@ -32,6 +35,7 @@ export const Player = ({
   historicalTime,
   originX = 0,
   isoProjection,
+  worldId,
 }: {
   game: ServerGame;
   isViewer: boolean;
@@ -40,6 +44,8 @@ export const Player = ({
   historicalTime?: number;
   originX?: number;
   isoProjection?: Projection;
+  // Needed only by the iso speech-bubble query (listMessages).
+  worldId?: Id<'worlds'>;
 }) => {
   const playerCharacter = game.playerDescriptions.get(player.id)?.character;
   if (!playerCharacter) {
@@ -93,6 +99,7 @@ export const Player = ({
   }
 
   if (VIEW_MODE === 'iso' && isoProjection) {
+    const now = historicalTime ?? Date.now();
     // Active = a real busy signal right now (typing/thinking/moving/activity).
     // ISO_STATE_DEBUG forces a deterministic split so the contrast is visible
     // even when live data happens to be all-idle. Same signals the 2D path uses.
@@ -102,13 +109,38 @@ export const Player = ({
           isSpeaking: game.typingPlayerIds.has(player.id),
           isThinking: game.thinkingPlayerIds.has(player.id),
           isMoving: historicalLocation.speed > 0,
-          hasLiveActivity:
-            !!player.activity && player.activity.until > (historicalTime ?? Date.now()),
+          hasLiveActivity: !!player.activity && player.activity.until > now,
         });
+    const name = game.playerDescriptions.get(player.id)?.name;
+    // Bubble priority: debug > typing dots > live conversation message > idle
+    // activity. Invited/walkingOver members show nothing (not participating).
+    const conversation = game.world.playerConversation(player);
+    const participating =
+      conversation?.participants.get(player.id)?.status.kind === 'participating';
+    let bubble: React.ReactNode = null;
+    if (ISO_BUBBLE_DEBUG) {
+      bubble = <SpeechBubble headerName={name} text={debugBubbleText(player.id)} />;
+    } else if (game.typingPlayerIds.has(player.id)) {
+      bubble = <SpeechBubble text="···" />;
+    } else if (participating && conversation && worldId) {
+      bubble = (
+        <ConversationBubble
+          worldId={worldId}
+          conversationId={conversation.id}
+          playerId={player.id}
+          name={name}
+          now={now}
+        />
+      );
+    } else if (!conversation && player.activity && player.activity.until > now) {
+      const { emoji, description } = player.activity;
+      bubble = <SpeechBubble text={`${emoji ?? ''} ${truncateBubbleText(description, 24)}`} />;
+    }
     return (
       <IsoCharacter
         role={isViewer ? 'human' : 'agent'}
         avatarId={playerCharacter}
+        name={name}
         position={historicalLocation}
         facing={{ dx: historicalLocation.dx, dy: historicalLocation.dy }}
         speed={historicalLocation.speed}
@@ -117,7 +149,9 @@ export const Player = ({
         selected={isViewer}
         activeState={activeState}
         onClick={() => onClick({ kind: 'player', id: player.id })}
-      />
+      >
+        {bubble}
+      </IsoCharacter>
     );
   }
 
