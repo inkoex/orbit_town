@@ -50,10 +50,37 @@ new GLTFLoader().load(
   url,
   (gltf) => {
     const model = gltf.scene;
-    const box = new THREE.Box3().setFromObject(model);
+    // Model-agnostic normalization: scale ANY source (Kenney ~2u, RobotExpressive
+    // ~149u, Tripo output, …) to one target height so the fixed camera/frustum
+    // frames them all identically. Without this the camera (near/far 0.1..100,
+    // ~10u out) is hardcoded for tiny models and clips/shrinks large ones.
+    // Kenney male-a's visible-mesh height. Normalizing every model to this makes
+    // the existing FRUSTUM/LOOKY tuning frame ANY source the same, and re-baking
+    // the shipped Kenney avatars is a no-op (they already measure ~this).
+    const TARGET_HEIGHT = 0.671;
+    // Measure the VISIBLE mesh, not Box3.setFromObject — that includes bone/empty
+    // nodes whose extents can dwarf the mesh (RobotExpressive: mesh ~2.6u but the
+    // skeleton bbox is ~149u). Union only isMesh geometry, in world space.
+    model.updateWorldMatrix(true, true);
+    const meshBox = (obj) => {
+      const b = new THREE.Box3();
+      obj.traverse((o) => {
+        if (o.isMesh && o.geometry) {
+          o.geometry.computeBoundingBox();
+          b.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld));
+        }
+      });
+      return b;
+    };
+    let box = meshBox(model);
+    const rawH = box.max.y - box.min.y || 1;
+    window.__modelHeight = rawH;
+    model.scale.setScalar(TARGET_HEIGHT / rawH);
+    model.updateWorldMatrix(true, true);
+    box = meshBox(model); // recompute after scaling
     model.position.y -= box.min.y; // feet at y=0
-    window.__modelHeight = box.max.y - box.min.y;
     pivot.add(model);
+    window.__dbg = { rawH, scaledH: box.max.y - box.min.y };
     window.__animCount = gltf.animations.length;
     window.__animNames = gltf.animations.map((a) => a.name);
     if (gltf.animations.length) {
