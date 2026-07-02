@@ -31,6 +31,8 @@
 
 **🔑 작업 레이어 스택 확정 (2026-07-02):** [work-layer-stack](design/2026-07-02-work-layer-stack.md) — **CrewAI 먼저(슬라이스 1~2, 최속 검증) → LangGraph는 계획된 이주**(트리거 4: 분기 표현 한계·HITL·체크포인트·에러 세분화 — 네오트라 트레이딩은 빨리 칠 것으로 예상). 오래가는 자산 = **프레임워크 중립 이벤트 계약**(`workEvents`→Convex→아바타), 어댑터만 교체. 철칙: 계약 먼저 정의 + crew에 분기 욱여넣지 않기. 다음 할 일 = 이벤트 계약 30분 설계 → 가짜 제너레이터 → CrewAI 교체.
 
+**🔑 Phase 0b 스파이크 통과 (2026-07-03, `e39d825`→`a61f765`):** 이미지→Tripo(생성·리깅·걷기)→베이크→**게임 내 4방향 보행까지 end-to-end 성공.** 첫 Tripo 아바타 `robot-analyst`가 Lyra로 캐스팅돼 맵에 있음. 베이크 파이프라인이 모델-불문화됨(가시메시 정규화·root motion 제거·몸통뼈 x/z 센터링·WALK_LEN=한 보행주기·YAW_OFFSET 모델별). **시행착오 전체 기록 = 계획 문서 부록 C** (입력 이미지 규칙: 투명배경·무그림자·무반사·빈손 A포즈·4방향 키 동일 등). 남은 것: 발밑 원판 제거(Tripo Segment)·팔 스윙 프리셋. 실행 절차 = `tools/avatar-render/RUNBOOK.md`.
+
 **🔑 아바타 시스템 계획 v2 확정 (2026-07-02):** [avatar-system-plan](design/2026-07-02-avatar-system-plan.md) — 4-AI 교차검증안(v1)을 프로젝트 접합 리뷰로 수정. 핵심: **D0 런타임 유지**(PixiJS+베이크, R3F는 트리거 3개 시), 규모 50/100, **Phase 1 게이트 = 작업 레이어 첫 슬라이스 선행**. **부록 A = Frozen-전시 안무 아키텍처**(Codex 교차검증 합의: worldState 구독/heartbeat 절단이 본질, 절대시간 슬롯 결정론, VisualAgent 분리, 검증=Frozen 30분 I/O 무증가). Phase 0a(IdleChoreographer MVP)가 그 검증 겸용. Obsidian 동기화됨. **팀 확장 = 한 세계·팀=섬 추가**, 세계관 교체는 코스메틱 축 별개.
 
 **비용/인프라 현황:** 모델 nano 전환(env), 쿨다운 3분, **Convex Free plan 초과 → 월드 수동 Freeze로 출혈 정지 중**. 로컬 Convex+Ollama는 "GPU 이미 소유 시에만 무료" — 개인용(내 맥)=로컬 유리, VPS 서비스화=nano API가 오히려 쌈(GPU VPS 비쌈). 근데 위 대화-레이어 결정이 서면 이 비용 문제 자체가 크게 줄어듦.
