@@ -29,6 +29,8 @@
 
 **🔑 큰 방향 결정 (2026-07-01, 먼저 읽기):** [대화 레이어 결정](design/2026-07-01-conversation-vs-work-layer.md) — 아바타 LLM 잡담은 AI Town의 코어지만 InKoEx엔 **전시/유휴 레이어일 뿐**. 결론: **잡담은 캔드/템플릿으로 (~$0), 진짜 "대화"=작업 협업은 실제 에이전트 채널에**, 화면은 실제 사건 시각화. 이게 비용 실타래(nano·쿨다운·Convex쿼터)의 **근본 레버** — "애초에 그 LLM 대화를 안 하는 것". 구현 체크리스트는 그 문서에. (Obsidian 사본도 있음)
 
+**🔑 Paperclip AI 연동 검토 (2026-07-03, 정독 권장):** [paperclip-integration](design/2026-07-03-paperclip-integration.md) — Paperclip(오픈소스 에이전트 조직도 오케스트레이터, activity 감사로그, 로컬 Node)이 **CrewAI로 지으려던 작업 레이어의 강력한 기성품 후보.** Claude 웹조사 + Codex 교차검증 결론: **전면교체 X → 중립 workEvents 계약 먼저(직접 emitter로 첫 슬라이스), Paperclip은 source adapter 하나로(폴링+커스텀어댑터, DB직접 금지).** 아웃바운드 웹훅 미지원(폴링), durable log ≠ workflow runtime(LangGraph 트리거 별도 유지), **Paperclip이 이미 관리 UI 보유 → Orbit 정체성=관리콘솔 아닌 "전시"로 날카롭게.** work-layer-stack의 CrewAI 결정은 이 검토로 재프레이밍됨.
+
 **🔑 작업 레이어 스택 확정 (2026-07-02):** [work-layer-stack](design/2026-07-02-work-layer-stack.md) — **CrewAI 먼저(슬라이스 1~2, 최속 검증) → LangGraph는 계획된 이주**(트리거 4: 분기 표현 한계·HITL·체크포인트·에러 세분화 — 네오트라 트레이딩은 빨리 칠 것으로 예상). 오래가는 자산 = **프레임워크 중립 이벤트 계약**(`workEvents`→Convex→아바타), 어댑터만 교체. 철칙: 계약 먼저 정의 + crew에 분기 욱여넣지 않기. 다음 할 일 = 이벤트 계약 30분 설계 → 가짜 제너레이터 → CrewAI 교체.
 
 **다음 한 칸 (2026-07-03 마감 기준):** ① 강의 마무리 → **이벤트 계약 30분 설계 → 가짜 제너레이터 슬라이스** (본선. 이거면 "빈깡통" 탈출) ② 표정 오버레이 MVP(반나절, 순수 프론트 — 계획 §3 표 참조) ③ 로봇 발밑 원판 제거(Tripo Segment 1회). 파이프라인 후속: **자동 키 캘리브레이션 추가됨**(`8649ef9`, HEIGHT_SCALE=auto — 수동 노브는 YAW_OFFSET만 남음), 표정=오버레이/소품=베이크소켓 결정(`8b1b7a4`), 라이팅 규칙 교정(`d08beb8`, 하드 스펙큘러만 금지·확산광 유지).
