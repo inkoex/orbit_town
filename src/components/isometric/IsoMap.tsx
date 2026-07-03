@@ -27,6 +27,11 @@ const GRID_LINE = 0x123042;
 // Cell grid lines: brighter blue-cyan than GRID_LINE so the tiles read clearly
 // against the dark slab (the old 0x123042 @ 0.35 was nearly invisible).
 const GRID_CELL = 0x2e6d94;
+// Bridges read as glass catwalks in space: a cooler, translucent deck (stars
+// show through) with glowing handrails — distinct from the opaque island slabs.
+const BRIDGE_FILL = 0x0e2c44;
+const BRIDGE_FILL_ALPHA = 0.34;
+const BRIDGE_RAIL_H = 16; // screen px the handrail floats above the deck edge
 const RIM_CYAN = 0x22d3ee;
 const RIM_CYAN_HOT = 0x38e6ff;
 
@@ -102,13 +107,13 @@ export function IsoMap({
   const drawFloor = useCallback(
     (g: PIXI.Graphics) => {
       g.clear();
-      const tile = (x: number, y: number) => {
+      const tile = (x: number, y: number, fill: number, fillAlpha: number, gridAlpha: number) => {
         const top = projection.worldToScreen({ x, y });
         const right = projection.worldToScreen({ x: x + 1, y });
         const bottom = projection.worldToScreen({ x: x + 1, y: y + 1 });
         const left = projection.worldToScreen({ x, y: y + 1 });
-        g.beginFill(SLAB_FILL);
-        g.lineStyle(1, GRID_CELL, 0.55);
+        g.beginFill(fill, fillAlpha);
+        g.lineStyle(1, GRID_CELL, gridAlpha);
         g.moveTo(top.x, top.y);
         g.lineTo(right.x, right.y);
         g.lineTo(bottom.x, bottom.y);
@@ -116,8 +121,13 @@ export function IsoMap({
         g.lineTo(top.x, top.y);
         g.endFill();
       };
-      for (const r of [...platforms.map((p) => p.rect), ...bridges]) {
-        for (let x = r.x; x < r.x + r.w; x++) for (let y = r.y; y < r.y + r.h; y++) tile(x, y);
+      // Islands: opaque slab. Bridges: translucent glass deck (stars show through).
+      for (const r of platforms.map((p) => p.rect)) {
+        for (let x = r.x; x < r.x + r.w; x++) for (let y = r.y; y < r.y + r.h; y++) tile(x, y, SLAB_FILL, 1, 0.55);
+      }
+      for (const r of bridges) {
+        for (let x = r.x; x < r.x + r.w; x++) for (let y = r.y; y < r.y + r.h; y++)
+          tile(x, y, BRIDGE_FILL, BRIDGE_FILL_ALPHA, 0.4);
       }
       const c = [
         projection.worldToScreen({ x: 0, y: 0 }),
@@ -164,6 +174,54 @@ export function IsoMap({
       }
     },
     [platforms, projection],
+  );
+
+  // Glowing handrails along each bridge's two long edges, floating a little above
+  // the glass deck — a lit conduit the energy motes flow down. Faint posts drop
+  // to the deck at intervals so it reads as a railing, not a stray line.
+  const drawBridgeRails = useCallback(
+    (g: PIXI.Graphics) => {
+      g.clear();
+      for (const r of bridges) {
+        const horizontal = r.w >= r.h;
+        // The two long edges as world-space endpoint pairs.
+        const edges = horizontal
+          ? [
+              [{ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y }],
+              [{ x: r.x, y: r.y + r.h }, { x: r.x + r.w, y: r.y + r.h }],
+            ]
+          : [
+              [{ x: r.x, y: r.y }, { x: r.x, y: r.y + r.h }],
+              [{ x: r.x + r.w, y: r.y }, { x: r.x + r.w, y: r.y + r.h }],
+            ];
+        const span = horizontal ? r.w : r.h;
+        for (const [a, b] of edges) {
+          const pa = projection.worldToScreen(a);
+          const pb = projection.worldToScreen(b);
+          const ra = { x: pa.x, y: pa.y - BRIDGE_RAIL_H };
+          const rb = { x: pb.x, y: pb.y - BRIDGE_RAIL_H };
+          // Posts: deck edge up to the rail, every ~1 tile.
+          g.lineStyle(2, RIM_CYAN, 0.35);
+          for (let i = 0; i <= span; i++) {
+            const t = span === 0 ? 0 : i / span;
+            const px = pa.x + (pb.x - pa.x) * t;
+            const py = pa.y + (pb.y - pa.y) * t;
+            g.moveTo(px, py);
+            g.lineTo(px, py - BRIDGE_RAIL_H);
+          }
+          // Handrail: stacked-stroke glow, crisp line on top.
+          const rail = (w: number, color: number, alpha: number) => {
+            g.lineStyle(w, color, alpha);
+            g.moveTo(ra.x, ra.y);
+            g.lineTo(rb.x, rb.y);
+          };
+          rail(8, RIM_CYAN, 0.1);
+          rail(4, RIM_CYAN, 0.22);
+          rail(2, RIM_CYAN_HOT, 0.95);
+        }
+      }
+    },
+    [bridges, projection],
   );
 
   // Soft cyan pool of light beneath each slab — sells the antigravity hover.
@@ -326,6 +384,10 @@ export function IsoMap({
         onpointerup={onpointerup}
         onpointerdown={onpointerdown}
       />
+      {/* Handrails breathe with the archipelago; motes flow between them. */}
+      <Pulse periodMs={3400} min={0.6} max={1} phase={0.15}>
+        <Graphics draw={drawBridgeRails} />
+      </Pulse>
       <TickGraphics render={drawBridgeFlow} />
       {/* Rims and pylons breathe on slightly different periods so the
           archipelago shimmers instead of pulsing in lockstep. */}
