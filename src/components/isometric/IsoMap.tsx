@@ -176,40 +176,47 @@ export function IsoMap({
     [platforms, projection],
   );
 
-  // Glowing handrails along each bridge's two long edges, floating a little above
-  // the glass deck — a lit conduit the energy motes flow down. Faint posts drop
-  // to the deck at intervals so it reads as a railing, not a stray line.
+  // Glowing handrails along each bridge's long edges, floating above the glass
+  // deck — a lit conduit the motes flow down. Railed PER TILE-SEGMENT, and a
+  // segment is skipped where the tile across the edge is itself walkable
+  // (another bridge or a platform): those are junctions/entrances, so leaving
+  // them open reads as a path, not a blocked-off box.
   const drawBridgeRails = useCallback(
     (g: PIXI.Graphics) => {
       g.clear();
+      const inRect = (x: number, y: number, r: Rect) =>
+        x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
+      const walkable = (x: number, y: number) =>
+        platforms.some((p) => inRect(x, y, p.rect)) || bridges.some((b) => inRect(x, y, b));
+
       for (const r of bridges) {
         const horizontal = r.w >= r.h;
-        // The two long edges as world-space endpoint pairs.
-        const edges = horizontal
-          ? [
-              [{ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y }],
-              [{ x: r.x, y: r.y + r.h }, { x: r.x + r.w, y: r.y + r.h }],
-            ]
-          : [
-              [{ x: r.x, y: r.y }, { x: r.x, y: r.y + r.h }],
-              [{ x: r.x + r.w, y: r.y }, { x: r.x + r.w, y: r.y + r.h }],
-            ];
-        const span = horizontal ? r.w : r.h;
-        for (const [a, b] of edges) {
-          const pa = projection.worldToScreen(a);
-          const pb = projection.worldToScreen(b);
+        // One segment per tile along each long edge, with the tile just across
+        // that edge (outside) to test for an opening.
+        type Seg = { a: { x: number; y: number }; b: { x: number; y: number }; ox: number; oy: number };
+        const segs: Seg[] = [];
+        if (horizontal) {
+          for (let x = r.x; x < r.x + r.w; x++) {
+            segs.push({ a: { x, y: r.y }, b: { x: x + 1, y: r.y }, ox: x, oy: r.y - 1 });
+            segs.push({ a: { x, y: r.y + r.h }, b: { x: x + 1, y: r.y + r.h }, ox: x, oy: r.y + r.h });
+          }
+        } else {
+          for (let y = r.y; y < r.y + r.h; y++) {
+            segs.push({ a: { x: r.x, y }, b: { x: r.x, y: y + 1 }, ox: r.x - 1, oy: y });
+            segs.push({ a: { x: r.x + r.w, y }, b: { x: r.x + r.w, y: y + 1 }, ox: r.x + r.w, oy: y });
+          }
+        }
+        for (const seg of segs) {
+          if (walkable(seg.ox, seg.oy)) continue; // opening — leave it railless
+          const pa = projection.worldToScreen(seg.a);
+          const pb = projection.worldToScreen(seg.b);
+          // Post up from the deck at the segment start.
+          g.lineStyle(2, RIM_CYAN, 0.35);
+          g.moveTo(pa.x, pa.y);
+          g.lineTo(pa.x, pa.y - BRIDGE_RAIL_H);
+          // Handrail: stacked-stroke glow, crisp line on top.
           const ra = { x: pa.x, y: pa.y - BRIDGE_RAIL_H };
           const rb = { x: pb.x, y: pb.y - BRIDGE_RAIL_H };
-          // Posts: deck edge up to the rail, every ~1 tile.
-          g.lineStyle(2, RIM_CYAN, 0.35);
-          for (let i = 0; i <= span; i++) {
-            const t = span === 0 ? 0 : i / span;
-            const px = pa.x + (pb.x - pa.x) * t;
-            const py = pa.y + (pb.y - pa.y) * t;
-            g.moveTo(px, py);
-            g.lineTo(px, py - BRIDGE_RAIL_H);
-          }
-          // Handrail: stacked-stroke glow, crisp line on top.
           const rail = (w: number, color: number, alpha: number) => {
             g.lineStyle(w, color, alpha);
             g.moveTo(ra.x, ra.y);
@@ -221,7 +228,7 @@ export function IsoMap({
         }
       }
     },
-    [bridges, projection],
+    [platforms, bridges, projection],
   );
 
   // Soft cyan pool of light beneath each slab — sells the antigravity hover.
