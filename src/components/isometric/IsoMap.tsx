@@ -24,6 +24,9 @@ interface Props {
 // lives only on each platform's rim — never on the tile mesh.
 const SLAB_FILL = 0x0a0e18;
 const GRID_LINE = 0x123042;
+// Cell grid lines: brighter blue-cyan than GRID_LINE so the tiles read clearly
+// against the dark slab (the old 0x123042 @ 0.35 was nearly invisible).
+const GRID_CELL = 0x2e6d94;
 const RIM_CYAN = 0x22d3ee;
 const RIM_CYAN_HOT = 0x38e6ff;
 
@@ -105,7 +108,7 @@ export function IsoMap({
         const bottom = projection.worldToScreen({ x: x + 1, y: y + 1 });
         const left = projection.worldToScreen({ x, y: y + 1 });
         g.beginFill(SLAB_FILL);
-        g.lineStyle(1, GRID_LINE, 0.35);
+        g.lineStyle(1, GRID_CELL, 0.55);
         g.moveTo(top.x, top.y);
         g.lineTo(right.x, right.y);
         g.lineTo(bottom.x, bottom.y);
