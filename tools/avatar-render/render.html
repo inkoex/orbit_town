@@ -75,7 +75,14 @@ new GLTFLoader().load(
     // skeleton bbox is ~149u). Union only isMesh geometry, in world space.
     model.updateWorldMatrix(true, true);
     let box = meshWorldBox(model);
-    const rawH = box.max.y - box.min.y || 1;
+    const rawH = box.max.y - box.min.y;
+    if (!isFinite(rawH) || rawH <= 0) {
+      // Empty Box3 (no isMesh geometry) yields max.y-min.y = -Infinity; a
+      // degenerate mesh yields ≤0. Fail loudly instead of scaling to -0/NaN and
+      // baking blank frames (which would also defeat the height calibration).
+      window.__renderError = 'empty or degenerate mesh (no visible geometry)';
+      return;
+    }
     window.__modelHeight = rawH;
     const baseScale = TARGET_HEIGHT / rawH;
     model.scale.setScalar(baseScale);
@@ -90,6 +97,7 @@ new GLTFLoader().load(
     // too small — this knob (or extract.sh's auto-calibration) compensates.
     window.__setHeightScale = (f) => {
       model.scale.setScalar(baseScale * f);
+      window.__floorDrop = null; // scale changed — recompute the floor drop next frame
     };
     window.__animCount = gltf.animations.length;
     window.__animNames = gltf.animations.map((a) => a.name);
@@ -99,11 +107,17 @@ new GLTFLoader().load(
     model.traverse((o) => {
       if (!bodyBone && o.isSkinnedMesh && o.skeleton) {
         const bones = o.skeleton.bones;
+        // Only accept a recognizably-central bone. The old bones[0] fallback
+        // often grabbed the armature/scene root (off in a corner) or an arm,
+        // so centering subtracted the wrong point and the sprite drifted/clipped
+        // per facing. If none match we leave bodyBone null and __renderFrame
+        // centers on the visible-mesh AABB instead — imperfect but not corner-anchored.
         bodyBone =
           bones.find((b) => /pelvis/i.test(b.name)) ||
           bones.find((b) => /hips?/i.test(b.name)) ||
+          bones.find((b) => /spine|torso|chest/i.test(b.name)) ||
           bones.find((b) => /root/i.test(b.name)) ||
-          bones[0];
+          null;
       }
     });
     if (gltf.animations.length) {
@@ -135,15 +149,26 @@ window.__renderFrame = (dirIndex, animTime) => {
   // shifts screen-Y, so per-yaw depth differences made the sprite sit lower on
   // some directions (the "sinks when walking up" bug). Vertical: drop the
   // visible mesh's lowest point (feet/base) to the floor.
-  if (loadedModel && bodyBone) {
+  if (loadedModel) {
     pivot.updateWorldMatrix(true, true);
-    const p = new THREE.Vector3();
-    bodyBone.getWorldPosition(p);
-    pivot.position.x -= p.x;
-    pivot.position.z -= p.z;
+    // Horizontal centering: prefer the body bone (pelvis/hips), whose axis is
+    // stable against antennae/arms that skew a full-mesh AABB per facing. For a
+    // rigless model or an unrecognized rig (bodyBone null), fall back to the
+    // visible-mesh AABB center — some per-facing drift, but far better than none.
+    const c = new THREE.Vector3();
+    if (bodyBone) bodyBone.getWorldPosition(c);
+    else meshWorldBox(pivot).getCenter(c);
+    pivot.position.x -= c.x;
+    pivot.position.z -= c.z;
     pivot.updateWorldMatrix(true, true);
-    const b = meshWorldBox(pivot);
-    pivot.position.y -= b.min.y;
+    // Vertical: drop the feet to the floor using ONE stable reference measured
+    // at the rest pose and reused for every frame (invalidated on rescale). A
+    // per-frame re-measure pinned the current lowest point each frame, so a
+    // lifted foot in the walk cycle shoved the whole body up/down ("bob").
+    // y-min is invariant under the x/z shift above and the yaw rotation, so one
+    // measurement is valid for all 4 directions and the whole gait.
+    if (window.__floorDrop == null) window.__floorDrop = meshWorldBox(pivot).min.y;
+    pivot.position.y -= window.__floorDrop;
   }
   renderer.render(scene, cam);
   return canvas.toDataURL('image/png');
@@ -170,6 +195,7 @@ window.__measureBodyH = (minPx = 40) => {
     }
     if (n >= minPx) { if (top < 0) top = y; bot = y; }
   }
+  if (top < 0) return 0; // nothing rendered — signal failure, not a phantom 1px
   return bot - top + 1;
 };
 </script>

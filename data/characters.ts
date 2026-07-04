@@ -170,7 +170,7 @@ export const isoDescriptions = [
   },
   {
     name: 'Lyra',
-    character: 'iso-agent-3',
+    character: 'robot-analyst',
     identity:
       'Lyra is the station researcher; curious, precise, always reading something.',
     plan: 'Dig through the library archives and share odd findings.',

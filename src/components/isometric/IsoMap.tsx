@@ -176,8 +176,8 @@ export function IsoMap({
     [platforms, projection],
   );
 
-  // Glowing handrails along each bridge's long edges, floating above the glass
-  // deck — a lit conduit the motes flow down. Railed PER TILE-SEGMENT, and a
+  // Glowing handrails around each bridge, floating above the glass deck — a lit
+  // conduit the motes flow down. Railed PER TILE-SEGMENT on all four edges, and a
   // segment is skipped where the tile across the edge is itself walkable
   // (another bridge or a platform): those are junctions/entrances, so leaving
   // them open reads as a path, not a blocked-off box.
@@ -190,21 +190,20 @@ export function IsoMap({
         platforms.some((p) => inRect(x, y, p.rect)) || bridges.some((b) => inRect(x, y, b));
 
       for (const r of bridges) {
-        const horizontal = r.w >= r.h;
-        // One segment per tile along each long edge, with the tile just across
-        // that edge (outside) to test for an opening.
+        // One segment per boundary tile along ALL FOUR edges. The tile just
+        // across each edge (ox,oy) decides it: walkable across → junction/entrance
+        // (leave open); otherwise it's an edge over the void (rail it). Covering
+        // all four edges — not just the two long ones — rails the short ends and
+        // square (w==h) bridges too, instead of leaving them unconditionally open.
         type Seg = { a: { x: number; y: number }; b: { x: number; y: number }; ox: number; oy: number };
         const segs: Seg[] = [];
-        if (horizontal) {
-          for (let x = r.x; x < r.x + r.w; x++) {
-            segs.push({ a: { x, y: r.y }, b: { x: x + 1, y: r.y }, ox: x, oy: r.y - 1 });
-            segs.push({ a: { x, y: r.y + r.h }, b: { x: x + 1, y: r.y + r.h }, ox: x, oy: r.y + r.h });
-          }
-        } else {
-          for (let y = r.y; y < r.y + r.h; y++) {
-            segs.push({ a: { x: r.x, y }, b: { x: r.x, y: y + 1 }, ox: r.x - 1, oy: y });
-            segs.push({ a: { x: r.x + r.w, y }, b: { x: r.x + r.w, y: y + 1 }, ox: r.x + r.w, oy: y });
-          }
+        for (let x = r.x; x < r.x + r.w; x++) {
+          segs.push({ a: { x, y: r.y }, b: { x: x + 1, y: r.y }, ox: x, oy: r.y - 1 }); // north
+          segs.push({ a: { x, y: r.y + r.h }, b: { x: x + 1, y: r.y + r.h }, ox: x, oy: r.y + r.h }); // south
+        }
+        for (let y = r.y; y < r.y + r.h; y++) {
+          segs.push({ a: { x: r.x, y }, b: { x: r.x, y: y + 1 }, ox: r.x - 1, oy: y }); // west
+          segs.push({ a: { x: r.x + r.w, y }, b: { x: r.x + r.w, y: y + 1 }, ox: r.x + r.w, oy: y }); // east
         }
         for (const seg of segs) {
           if (walkable(seg.ox, seg.oy)) continue; // opening — leave it railless

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Extract 4-direction walk+idle PNG frames from a Kenney .glb via headed browse.
-# Usage: WALK_LEN=0.667 ./extract.sh "pack/Models/GLB format/character-male-a.glb" iso-agent
+# Usage: ./extract.sh "pack/Models/GLB format/character-male-a.glb" iso-agent
+# WALK_LEN/HEIGHT_SCALE/YAW_OFFSET/FRUSTUM/LOOKY auto-calibrate; override via env if needed.
 set -euo pipefail
 GLB_REL="$1"; AVATAR_ID="$2"
 ROOT="$(git rev-parse --show-toplevel)"
@@ -47,7 +48,19 @@ $B --headed js "window.__setHeightScale($HEIGHT_SCALE)" >/dev/null
 # yaw 0/90/180/270 (= dirIndex order) face sw/se/ne/nw respectively, so label
 # each rendered yaw with the direction it actually faces (no rotation hack).
 DIRS=(sw se ne nw)
-WALK_LEN="${WALK_LEN:-0.667}"
+# Walk-cycle length. Default to the clip's ACTUAL duration (render.html exposes
+# it as window.__walkLen) so a non-Kenney clip isn't sampled against Kenney's
+# 0.667s and baked as a partial/limping stride. Override with WALK_LEN=<sec> if
+# the clip packs several strides and you want to bake a sub-range.
+WALK_LEN="${WALK_LEN:-auto}"
+if [ "$WALK_LEN" = "auto" ]; then
+  wl=$($B --headed js "window.__walkLen||0" | tail -1 | tr -dc '0-9.')
+  if [ -n "$wl" ] && awk "BEGIN{exit !($wl>0)}"; then
+    WALK_LEN="$wl"; echo "walk length: ${WALK_LEN}s (from clip)"
+  else
+    WALK_LEN=0.667; echo "walk length: no clip duration; using 0.667"
+  fi
+fi
 for i in 0 1 2 3; do
   d="${DIRS[$i]}"
   $B --headed js "window.__renderFrame($i, -1)" --out "$STAGE/character-$d-idle.png" >/dev/null

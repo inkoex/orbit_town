@@ -32,6 +32,19 @@ describe('isoDepthKey', () => {
     );
   });
 
+  test('layer band dominates the y tie-breaker ACROSS tiles on the same diagonal', () => {
+    // Regression: with a ×10 y term, y=15 (=150) crossed the old 100-wide band,
+    // so a floor on a high-y tile could outsort a wall on a low-y tile of the
+    // same diagonal (wrong occlusion near the EVENT platform, y up to 15).
+    expect(isoDepthKey({ x: 5, y: 15 }, 'floor', 0)).toBeLessThan(
+      isoDepthKey({ x: 15, y: 5 }, 'wall', 0),
+    );
+    // …and an object on a low-y tile still outranks a wall on a high-y tile.
+    expect(isoDepthKey({ x: 16, y: 4 }, 'object', 0)).toBeGreaterThan(
+      isoDepthKey({ x: 5, y: 15 }, 'wall', 0),
+    );
+  });
+
   test('same input gives the same key (stable)', () => {
     expect(isoDepthKey({ x: 4, y: 7 }, 'object', 50)).toBe(
       isoDepthKey({ x: 4, y: 7 }, 'object', 50),

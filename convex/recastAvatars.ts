@@ -1,21 +1,20 @@
 import { internalMutation } from './_generated/server';
+import { isoDescriptions } from '../data/characters';
 
-// One-off: recast the 6 iso agents onto distinct avatars WITHOUT a full reseed.
-// The sprite reads playerDescriptions.character reactively, so patching these
-// rows swaps avatars live — no wipe, no engine resume, the world can stay
-// Frozen, ~6 writes total. Keeps Convex usage near zero.
+// Dev utility: re-apply the seed's iso-agent casting to the LIVE world without a
+// full reseed. The sprite reads playerDescriptions.character reactively, so
+// patching these rows swaps avatars live — no wipe, no engine resume.
+//
+// Casting is DERIVED from isoDescriptions — the same single source of truth the
+// seed (init.ts) uses — so it can never diverge from a fresh reseed. To change
+// an avatar, edit isoDescriptions; this just pushes that intent onto rows that
+// were seeded before the edit.
 //
 // Run: npx convex run recastAvatars:recast
-// (Safe to re-run; only patches rows whose character differs. Delete this file
-// once a proper reseed path exists, or keep as a dev utility.)
-const CAST: Record<string, string> = {
-  Nova: 'iso-agent-5',
-  Orion: 'iso-agent-4',
-  Vega: 'iso-agent-2',
-  Lyra: 'robot-analyst',
-  Atlas: 'iso-agent-7',
-  Iris: 'iso-agent-1',
-};
+// (Safe to re-run; only patches rows whose character differs.)
+const CAST: Record<string, string> = Object.fromEntries(
+  isoDescriptions.map((d) => [d.name, d.character]),
+);
 
 export const recast = internalMutation({
   args: {},
@@ -25,6 +24,15 @@ export const recast = internalMutation({
       .filter((q) => q.eq(q.field('isDefault'), true))
       .unique();
     if (!worldStatus) throw new Error('no default world');
+    // A running engine rewrites playerDescriptions from its in-memory checkpoint
+    // (loaded at engine start, before this patch), so it would silently revert
+    // these swaps on its next step. Require the world to be stopped/Frozen.
+    if (worldStatus.status === 'running') {
+      throw new Error(
+        'world engine is running — freeze it first (a running engine reverts these ' +
+          'patches on its next checkpoint). Stop it via `testing:stop` or the Freeze button, then re-run.',
+      );
+    }
     const descs = await ctx.db
       .query('playerDescriptions')
       .withIndex('worldId', (q) => q.eq('worldId', worldStatus.worldId))
