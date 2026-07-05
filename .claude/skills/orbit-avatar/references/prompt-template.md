@@ -38,7 +38,13 @@ VARY ONLY these (this sibling = <<ROLE / PERSONALITY>>):
 - Outfit: <<OUTFIT — keep it compact/cropped; e.g. cardigan / blazer+tie / overalls / dress>>
 - Helmet: keep the rounded family helmet + blank dark visor + cyan glow; <<HELMET DETAIL, e.g. temple LED / headlamp / hair silhouette>>
 - Color: <<PALETTE — single signature hue OR coordinated multicolor; keep cream trim + cyan glow>>
-- Footwear: <<chunky oversized sneakers / Mary-Janes>>
+- Footwear: <<chunky sneakers / Mary-Janes — MODERATELY chunky, not extreme:
+  oversized shoes interpenetrate during walk animation after auto-rigging>>
+- Back: keep it CLEAN — no backpack/bag/dangling gear (auto-skinning makes
+  attached accessories wobble; bags become 2D props later, never baked)
+- NO worn accessories: no ID badge/lanyard/stethoscope/loose scarf ends —
+  they weld into the mesh and jiggle like flesh when animated. Helmet-attached
+  shapes and flush clothing details (buttons, pockets, trim) are fine.
 <<GENDER CODING (optional): bob/ponytail/twin-tail hair silhouette + bow + dress/skirt + Mary-Janes>>
 
 Output rules: RGBA PNG with a 100% TRANSPARENT background (alpha=0), NO shadow of

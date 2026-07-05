@@ -145,6 +145,38 @@ must be a rig-friendly pose**:
 The rule of thumb: the **silhouette must have daylight through it** — arm↔torso
 and leg↔leg separated — so the rigger can find the joints.
 
+**RIG-FRIENDLY DESIGN rules (bake these into the character, learned 2026-07-06):**
+Auto-riggers (Tripo, Meshy, Mixamo alike) skin the whole welded mesh as SOFT
+FLESH — there is no "mark this part rigid" control in Tripo — so anything that
+shouldn't deform must be prevented at the image level:
+- **Shoes: moderately chunky, not extreme.** Oversized shoes + a standard walk
+  clip = heels interpenetrating mid-swing. Chunky enough for the toy read,
+  small enough that the swing arcs clear each other.
+- **Back stays clean: NO backpacks, bags, or dangling gear.** Attached
+  accessories wobble like jelly when auto-skinned (observed live). If a role
+  needs a bag, it's a 2D overlay/prop-socket later, never baked geometry.
+- **NO worn accessories at all** — ID badges/lanyards/stethoscopes/loose scarf
+  ends. The badge on the office-manager wobbled violently in the walk (observed
+  live): the rigger can't tell it from skin. Role identity comes from COLOR +
+  HELMET SHAPE + CLOTHING CUT; role items become runtime 2D props later (this
+  confirms the original props-are-sockets decision empirically).
+  - Fine: helmet-attached shapes (bows, lamps, back variation — the helmet stays
+    rigid on Tripo) and flush clothing details (buttons, pockets, trim, collars).
+- **Prefer snug/fitted clothing** over loose hems and flowing coats — loose
+  cloth deforms like skin.
+- Empirical A/B (2026-07-06): Tripo's skinning kept the helmet rigid; Meshy
+  wobbled even the helmet. For this family, Tripo currently skins better —
+  but Meshy's MESH (modeling+texture, separate steps there) came out smoother.
+- **Hybrid route (best of both, verified supported):** Meshy image→3D + texture
+  → download GLB (pick a MODERATE polycount — heavy meshes rig poorly; ~50-100k
+  faces, ≤150MB) → upload the GLB into Tripo's rigging workspace (external
+  OBJ/FBX/GLB upload is official) → humanoid auto-rig + walk preset → export
+  GLB → bake. Check on first use that textures survive Tripo's rig+export.
+- If wobble still shows AFTER a bake at game scale (256px sprites hide a lot —
+  always bake and look before surgery), the sure fix is Blender: assign
+  helmet/shoe vertices 1.0 to their single bone. One-time, on the canonical
+  base only.
+
 Example: `docs/design/assets/2026-07-04-sibling-office-manager-rigpose-natural.png`
 (A-pose, open armpits, legs apart; NATURAL relaxed hands kept from the display
 pose). This is the keeper — spread the arms/legs, leave the hands alone.
