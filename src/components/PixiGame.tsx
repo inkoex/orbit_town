@@ -22,6 +22,7 @@ import { Container } from '@pixi/react';
 import { createIsoProjection } from '../rendering/projection/isoProjection';
 import { IsoMap } from './isometric/IsoMap.tsx';
 import { IsoBillboard } from './isometric/IsoBillboard.tsx';
+import { IsoLogo } from './isometric/IsoLogo.tsx';
 import { IsoPropsLayer } from './isometric/IsoProps.tsx';
 import { Bob } from './isometric/AnimatedContainer.tsx';
 import { IsoMapObject } from './isometric/IsoMapObject.tsx';
@@ -253,6 +254,10 @@ export const PixiGame = (props: {
               anchorTile={{ x: 2, y: -3.5 }}
               agentsOnline={props.game.world.agents.size}
             />
+          </Bob>
+          {/* InKoEx brand mark in the top-left sky, mirroring the jumbotron. */}
+          <Bob periodMs={7200} amplitudePx={14}>
+            <IsoLogo projection={isoProjection} anchorTile={{ x: -3, y: 2 }} width={720} />
           </Bob>
           <IsoMap
             width={width}
