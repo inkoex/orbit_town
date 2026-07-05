@@ -54,9 +54,12 @@ interface Props {
   anchorTile: { x: number; y: number };
   // Live agent count shown in the status ticker.
   agentsOnline?: number;
+  // Neutral work-event lines (newest first) — real work-layer signal. When
+  // present they lead the ticker rotation, ahead of the ambient status lines.
+  workTicker?: string[];
 }
 
-export function IsoBillboard({ projection, anchorTile, agentsOnline }: Props) {
+export function IsoBillboard({ projection, anchorTile, agentsOnline, workTicker }: Props) {
   const base = projection.worldToScreen(anchorTile);
   const ref = useRef<PIXI.Container>(null);
   useEffect(() => {
@@ -129,12 +132,13 @@ export function IsoBillboard({ projection, anchorTile, agentsOnline }: Props) {
 
   const statusLines = useMemo(
     () => [
+      ...(workTicker ?? []),
       `◢ AGENTS ONLINE: ${agentsOnline ?? '–'}`,
       '◢ MEMORY SYNC OK',
       '◢ UPLINK 100%',
       '◢ ORBIT STABLE',
     ],
-    [agentsOnline],
+    [agentsOnline, workTicker],
   );
 
   return (

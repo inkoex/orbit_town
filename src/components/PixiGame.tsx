@@ -70,6 +70,18 @@ export const PixiGame = (props: {
         : null,
     [isoMode, height],
   );
+
+  // The neutral work-event feed (workEventsContract.ts): the presentation's
+  // only window into the work layer. Rendered as billboard ticker lines —
+  // the first place a REAL agent event becomes visible on the map.
+  const workEvents = useQuery(api.workEvents.list, isoMode ? { count: 4 } : 'skip');
+  const workTicker = useMemo(
+    () =>
+      (workEvents ?? []).map(
+        (e) => `◢ ${(e.agentName ?? 'SYS').toUpperCase()} · ${e.summary}`,
+      ),
+    [workEvents],
+  );
   const originX = ISO_DEBUG ? isoOriginX(height, tileDim) : 0;
   const isoSize = ISO_DEBUG
     ? isoViewportSize(width, height, tileDim)
@@ -253,6 +265,7 @@ export const PixiGame = (props: {
               projection={isoProjection}
               anchorTile={{ x: 2, y: -3.5 }}
               agentsOnline={props.game.world.agents.size}
+              workTicker={workTicker}
             />
           </Bob>
           {/* InKoEx brand mark in the top-left sky, mirroring the jumbotron. */}

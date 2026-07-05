@@ -42,6 +42,7 @@ import type * as http from "../http.js";
 import type * as init from "../init.js";
 import type * as messages from "../messages.js";
 import type * as music from "../music.js";
+import type * as recastAvatars from "../recastAvatars.js";
 import type * as testing from "../testing.js";
 import type * as util_FastIntegerCompression from "../util/FastIntegerCompression.js";
 import type * as util_assertNever from "../util/assertNever.js";
@@ -56,6 +57,8 @@ import type * as util_sleep from "../util/sleep.js";
 import type * as util_theme from "../util/theme.js";
 import type * as util_types from "../util/types.js";
 import type * as util_xxhash from "../util/xxhash.js";
+import type * as workEvents from "../workEvents.js";
+import type * as workEventsContract from "../workEventsContract.js";
 import type * as world from "../world.js";
 
 import type {
@@ -99,6 +102,7 @@ declare const fullApi: ApiFromModules<{
   init: typeof init;
   messages: typeof messages;
   music: typeof music;
+  recastAvatars: typeof recastAvatars;
   testing: typeof testing;
   "util/FastIntegerCompression": typeof util_FastIntegerCompression;
   "util/assertNever": typeof util_assertNever;
@@ -113,6 +117,8 @@ declare const fullApi: ApiFromModules<{
   "util/theme": typeof util_theme;
   "util/types": typeof util_types;
   "util/xxhash": typeof util_xxhash;
+  workEvents: typeof workEvents;
+  workEventsContract: typeof workEventsContract;
   world: typeof world;
 }>;
 
