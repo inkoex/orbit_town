@@ -1,5 +1,5 @@
-import { Container, Graphics, Text } from '@pixi/react';
-import { MutableRefObject, useCallback, useEffect, useRef } from 'react';
+import { Container, Graphics, Sprite, Text } from '@pixi/react';
+import { MutableRefObject, useCallback, useEffect, useMemo, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 import type { Projection } from '../../rendering/projection/Projection';
 import type { Platform, Rect } from '../../../data/isoVerticalSlice';
@@ -40,6 +40,25 @@ const RIM_CYAN_HOT = 0x38e6ff;
 const SLAB_T = 64;
 const SLAB_LEFT = 0x060a12;
 const SLAB_RIGHT = 0x0a1020;
+
+// A soft radial-gradient texture (white → fully transparent) for the platform
+// under-glow. A real gradient fades to zero at the rim, so there is NO hard edge
+// — unlike stacked ellipses, whose outermost ring always leaves a visible border.
+// Tinted cyan + squashed into an ellipse per platform at render time.
+const GLOW_TEX = (() => {
+  const S = 128;
+  const cv = document.createElement('canvas');
+  cv.width = S;
+  cv.height = S;
+  const ctx = cv.getContext('2d')!;
+  const g = ctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.4, 'rgba(255,255,255,0.45)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, S, S);
+  return PIXI.Texture.from(cv);
+})();
 
 const LABEL_STYLE = new PIXI.TextStyle({
   fontFamily: 'monospace',
@@ -231,29 +250,22 @@ export function IsoMap({
   );
 
   // Soft cyan pool of light beneath each slab — sells the antigravity hover.
-  const drawUnderGlow = useCallback(
-    (g: PIXI.Graphics) => {
-      g.clear();
-      for (const p of platforms) {
+  // Under-glow placement per platform: a soft cyan pool hugging the slab's
+  // underside. Center sits just under the slab bottom, so the bright core kisses
+  // the island and the gradient fades softly downward (and up, behind the slab).
+  const underGlows = useMemo(
+    () =>
+      platforms.map((p) => {
         const r = p.rect;
         const c1 = projection.worldToScreen({ x: r.x + r.w, y: r.y });
         const c2 = projection.worldToScreen({ x: r.x + r.w, y: r.y + r.h });
         const c3 = projection.worldToScreen({ x: r.x, y: r.y + r.h });
-        const cx = (c3.x + c1.x) / 2;
-        const cy = c2.y + SLAB_T + 26;
-        const rx = ((c1.x - c3.x) / 2) * 0.8;
-        const layers: [number, number][] = [
-          [1, 0.05],
-          [0.7, 0.07],
-          [0.45, 0.1],
-        ];
-        for (const [f, a] of layers) {
-          g.beginFill(RIM_CYAN, a);
-          g.drawEllipse(cx, cy, rx * f, rx * f * 0.22);
-          g.endFill();
-        }
-      }
-    },
+        return {
+          cx: (c3.x + c1.x) / 2,
+          cy: c2.y + SLAB_T + 4,
+          w: (c1.x - c3.x) * 0.92, // ellipse width ≈ platform screen width
+        };
+      }),
     [platforms, projection],
   );
 
@@ -381,7 +393,20 @@ export function IsoMap({
     <Container>
       {/* Paint order: glow pool → slab sides → floor (keeps the hitArea) → fx. */}
       <Pulse periodMs={5200} min={0.6} max={1}>
-        <Graphics draw={drawUnderGlow} />
+        {underGlows.map((u, i) => (
+          <Sprite
+            key={`underglow-${i}`}
+            texture={GLOW_TEX}
+            anchor={0.5}
+            x={u.cx}
+            y={u.cy}
+            width={u.w}
+            height={u.w * 0.34}
+            tint={RIM_CYAN}
+            alpha={0.22}
+            blendMode={PIXI.BLEND_MODES.ADD}
+          />
+        ))}
       </Pulse>
       <Graphics draw={drawSlabSides} />
       <Graphics
