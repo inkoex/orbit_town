@@ -19,8 +19,8 @@ style, and face language EXACTLY):
 This is a SIBLING of the reference character — the same robot family. Keep these
 IDENTICAL to the reference:
 
-PROPORTION LOCK: super-deformed proportions — helmet/head about HALF the total
-figure height, about as wide as the torso.
+PROPORTION LOCK: super-deformed proportions — helmet/head just under half the total
+figure height (~43% measured), about as wide as the torso.
 
 COMPACT-CHUNKY SILHOUETTE LOCK (critical): short stubby visible legs, a
 short/cropped chunky top ending around the hips, OVERSIZED chunky footwear. Reads
@@ -50,16 +50,19 @@ After saving, reply with just the output file path and its pixel dimensions.
 
 ---
 
-## Worked examples (validated, head% within ~1pp of base except hair-coded)
+## Worked examples (head% MEASURED by verify-avatar.py, RGBA)
+
+Most land near the base (~43%), but a recolor/repose CAN still drift — the red
+scientist did. Re-measure each; don't assume a recolor kept the geometry.
 
 | Name | Role | Outfit | Color | head% |
 |---|---|---|---|---|
 | `sibling-engineer` | maker-engineer | work overalls + tool belt, boots | charcoal | 44.0 |
 | `sibling-comp-scientist` | computer scientist | knit cardigan + collar + lanyard | charcoal | 43.9 |
 | `sibling-comp-scientist-teal` | (recolor) | same cardigan | teal/emerald | 43.9 |
-| `sibling-comp-scientist-red` | (recolor) | same cardigan | coral red | 43.9 |
+| `sibling-comp-scientist-red` | (recolor) | same cardigan | coral red | **~48 (drifted)** |
 | `sibling-office-manager` | desk manager | blazer + tie + ID badge | multicolor (blue/coral/mustard) | 43.8 |
-| `sibling-female-rose` | female-coded | pinafore dress + bob hair + bow | dusty rose | 46.7 |
+| `sibling-female-rose` | female-coded | pinafore dress + bob hair + bow | dusty rose | 46.8 (hair) |
 
 Recolor an existing sibling by using IT as the reference image and saying "this is
 a RECOLOR — keep the form identical, only change the palette to <<COLOR>>; keep the

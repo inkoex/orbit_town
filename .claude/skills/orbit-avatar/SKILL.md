@@ -28,14 +28,17 @@ image and lock proportion + silhouette, varying only surface design.
 - Chibi space robot: charcoal helmet, cream/ivory hoodie, chunky sneakers,
   thin antenna w/ cyan tip, blank dark visor + single cyan resting glow.
 - Measured proportion: **head 43.0% of figure height, width/height 0.58.**
-- RGBA, transparent background, no shadow → Tripo-ready.
+- RGBA, transparent, no shadow. This is the **style/proportion anchor** (arms-down
+  display pose). NOTE: a display pose is NOT a direct Tripo input — Tripo needs a
+  rig-pose repose with open armpits (Procedure step 6 + Rig pose section).
 
 Every new avatar is generated with THIS image as the reference (img2img anchor),
 not from a text description alone.
 
 ## Family locks (NEVER change — these make them one crew)
 
-1. **Proportion**: super-deformed; helmet ≈ half the figure height, ≈ torso width.
+1. **Proportion**: super-deformed; helmet ~just under half the figure height
+   (≈43% measured), ≈ torso width.
 2. **Compact-chunky silhouette**: short stubby visible legs, cropped/short top,
    oversized chunky footwear. Top-heavy toy read. *(This is critical — a long/lean
    outfit elongates the perceived proportion even when head% is unchanged.)*
@@ -66,13 +69,24 @@ not from a text description alone.
 3. **Verify empirically** (do NOT trust the preview backdrop color — a viewer may
    composite transparency onto grey/black/magenta):
    `python3 .claude/skills/orbit-avatar/scripts/verify-avatar.py <file>`
-   Expect: transparency PASS, no-shadow PASS, head ~40–48%, w/h ~0.52–0.64.
-4. **Eyeball** the render for family fit + the intended role read.
-5. If proportion is off-band or the silhouette drifted (usually a too-long outfit),
-   re-generate with the compact-chunky lock emphasized.
-6. **Tripo prep**: once transparency + no-shadow pass, the image is Tripo-ready.
-   Feed to Tripo (image→3D→auto-rig→walk→GLB), then bake with the pipeline in
-   `tools/avatar-render/` (see `tools/avatar-render/RUNBOOK.md`).
+   It **exits non-zero on a hard failure** (non-RGBA, non-transparent bg, or a
+   shadow/base-disc) — use it as a gate. Expect: transparency PASS, no-shadow PASS,
+   head ~40–48%, w/h ~0.52–0.64. Non-RGBA input fails transparency and its
+   proportion is SKIPPED (the luminance heuristic misreads the cream trim by 5+pp).
+   The shadow and proportion checks are heuristics with blind spots — so also:
+4. **Eyeball** the render for family fit, the intended role read, and anything the
+   numbers can't see. Numbers AND eyes both, never one alone.
+5. **Fix drift, don't ship it.** If the script FAILs, WARNs off-band, or the
+   silhouette drifted (a too-long outfit silently makes long legs — the off-band
+   flag catches it; do NOT wave it away), re-generate with the compact-chunky lock
+   emphasized until it passes BOTH the script and the eyeball.
+6. **Tripo prep — the display image is NOT the Tripo input.** A display/hero pose
+   has arms near the torso → fused armpits when auto-rigged (see Rig pose). Before Tripo:
+   - 6a. Repose to a **rig pose** — open armpits, legs apart, natural hands (Rig pose section).
+   - 6b. For a hero/base avatar, also make a **matching back view** (Back view section).
+   Feed the rig-pose set (front [+ back]) to Tripo (image→3D → auto-rig with the
+   **humanoid** model → walk → GLB), then bake with `tools/avatar-render/`
+   (see `tools/avatar-render/RUNBOOK.md`).
 
 ## Back view (multi-view input for Tripo)
 
@@ -100,6 +114,43 @@ Rules for the back view:
 
 Front-only is acceptable for a quick/minor avatar (accept a plainer back); generate
 the back view at least for the base and any prominent role.
+
+**Front + back is the practical sweet spot.** A single front → Tripo hallucinates a
+bland back; front+back fixes it. Side/full-turnaround views are riskier: text-gen
+only approximates the exact pose/scale, and mis-registered views can make Tripo's
+multi-view reconstruction WORSE, not better — add them only for a specific need.
+Every view goes through `verify-avatar.py` (proportion) AND a visual check, and is
+regenerated if off-band — image-gen drifts (it once silently lengthened the legs).
+The manager rig set is a worked pair: `...-rigpose-natural.png` (front) +
+`...-rigpose-natural-back.png` (back), matching pose/scale.
+
+## Rig pose (the image you actually feed Tripo)
+
+The display/hero pose (arms near the body) is NOT riggable: if the arms touch the
+torso, the auto-rigger skins arm+torso as one blob and raising an arm drags the
+side of the body up (fused armpits / weight bleeding). The **Tripo input image
+must be a rig-friendly pose**:
+- **Arms in a wide A-pose (~45° down-and-out)** with a clear GAP (visible
+  background) under each arm — the armpit must be OPEN. Go full T-pose if the
+  rigger still fuses them.
+- **Legs slightly apart** with a visible gap between them.
+- **Hands: keep them NATURAL** — chunky fingers softly curled and held close
+  together, hanging relaxed (exactly the display-pose hands). Tripo reconstructs
+  natural curled hands fine — the finger worry was overblown. Only avoid a WIDE
+  FLAT SPLAY (starfish hand): big spread gaps web/noise in 3D. Do NOT overcorrect
+  into featureless nubs or webbed grooves either. Natural relaxed hand = best.
+  What actually matters for rigging is the ARM↔torso and leg↔leg gaps, not fingers.
+- Keep everything else (proportion, colors, outfit, face) identical to the display
+  version. This is a REPOSE of the same character, not a new one.
+The rule of thumb: the **silhouette must have daylight through it** — arm↔torso
+and leg↔leg separated — so the rigger can find the joints.
+
+Example: `docs/design/assets/2026-07-04-sibling-office-manager-rigpose-natural.png`
+(A-pose, open armpits, legs apart; NATURAL relaxed hands kept from the display
+pose). This is the keeper — spread the arms/legs, leave the hands alone.
+
+In Tripo, also pick the **humanoid/biped rig model**, NOT "Good for Animals"
+(the default may be wrong — a biped rigged with the animal skeleton hangs/fails).
 
 ## Gender coding (silhouette, color-independent)
 
@@ -129,13 +180,22 @@ color freely.
 
 ## Verify thresholds (from `scripts/verify-avatar.py`)
 
-- **transparency**: colortype 6 (RGBA), corner alpha ≈ 0 → Tripo-ready.
-- **no-shadow**: under-sole alpha ≈ 0 (no contact shadow / base disc).
-- **proportion**: head ~43% (40–48% ok; a hair silhouette legitimately raises it),
-  w/h ~0.58 (0.52–0.64 ok). Empirically siblings land within ~1pp of the base
-  when the locks are used.
-- (RGB/grey images read a slightly different head% due to the luminance-based
-  opacity test; the alpha-based measure on the transparent version is authoritative.)
+Expected input size ~**1024×1536** (the 40px body-row cutoff and bands are
+calibrated for it; a downscaled image reads a few pp lower). The script exits
+non-zero on any HARD failure, so it can gate.
+
+- **transparency** [HARD]: colortype 6 (RGBA), corner alpha ≈ 0.
+- **no-shadow** [HARD]: no broad moderate-alpha region (or opaque disc) below the
+  soles. HEURISTIC — a fully-opaque disc flush with the feet can still slip past;
+  the eyeball step is the backstop.
+- **proportion** [soft/WARN]: head ~43% (40–48% ok; a hair silhouette legitimately
+  raises it — female-rose ~47%), w/h ~0.58 (0.52–0.64 ok). Most siblings land near
+  the base, but recolors/reposes CAN drift (comp-scientist-red measured ~48%), so
+  treat every WARN as real and re-check.
+- **Non-RGBA proportion is NOT reported** — the luminance opacity test misreads the
+  ivory/cream trim (luminance near the grey bg) as background, moving the neck row
+  and skewing head% by 5+pp (e.g. the grey Bspec-1 reads 48% vs the RGBA 43% for
+  the identical character). Only the alpha-based RGBA measure is authoritative.
 
 ## Lessons / gotchas (hard-won)
 
@@ -152,6 +212,12 @@ color freely.
   disc/geometry in the Tripo mesh (the original robot-analyst base-disc bug).
 - Keep the **visor screen blank** — expressions are a runtime LED overlay, so a
   baked expression would fight it.
+- **Feed Tripo a rig pose, not the hero pose.** Arms hugging the torso → fused
+  armpits → the arm drags the body when animated. Spread the limbs (see Rig pose).
+- **In Tripo, set the rig model to humanoid/biped, not "Good for Animals."** The
+  wrong skeleton makes rigging hang for 10+ minutes. Credits aren't the issue.
+- A stuck/undeletable Tripo rig task is a zombie — don't fight it; the mesh is safe
+  in Assets. Open a fresh session (new tab / re-login) and start a new rig task.
 
 ## Related
 
