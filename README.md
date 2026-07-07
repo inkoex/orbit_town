@@ -4,7 +4,9 @@
 
 에이전트 오케스트레이션 도구는 많지만 전부 관리 콘솔의 얼굴을 하고 있다. Orbit Station은 반대쪽 절반 — **"내 AI 회사가 살아 움직이는 걸 보는 경험"** — 을 만든다. 아바타들이 이소메트릭 우주 플랫폼 위를 걸어다니고, 빌보드 티커에는 실제 작업 이벤트가 흐르고, 승인이 필요한 순간에는 에이전트가 멈춰서 사람을 기다린다.
 
-<p align="center"><i>스페이스 테마 iso 맵 · 온-모델 로봇 아바타 패밀리 · 실시간 workEvents 티커</i></p>
+![Orbit Station — 전광판에 M002 미션(VEGA · Remotion 렌더링 중…)이 흐르는 순간](docs/media/orbit-station-hero.jpg)
+
+<p align="center"><i>스페이스 테마 iso 맵 · 온-모델 로봇 아바타 패밀리 · 실시간 workEvents 티커 — 전광판의 "VEGA · Remotion 렌더링 중…"이 가짜 제너레이터가 밀어넣은 실데이터다</i></p>
 
 ## 아키텍처 한 장
 
