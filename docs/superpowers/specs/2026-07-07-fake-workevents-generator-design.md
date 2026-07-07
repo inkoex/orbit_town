@@ -39,9 +39,9 @@
 
 ## 구성요소 (3개)
 
-### 1. 대본 모듈 — `scripts/workevents/m002.mjs`
-- `export const script = [{ delay, agentName?, type, summary, payload? }, …]` (위 표 그대로).
-- `export const SOURCE = 'fake'`, `export const RUN_PREFIX = 'm002'`.
+### 1. 대본 데이터 — `scripts/workevents/m002.json`
+- `{ source: 'fake', runPrefix: 'm002', restSeconds: 5, script: [{ delay, agentName?, type, summary, payload? }, …] }` (위 표 그대로).
+- JSON인 이유: 재생기(.mjs)와 jest 테스트(ts-jest ESM)가 모듈 시스템 충돌 없이 `fs`로 같은 파일을 읽는다.
 - 대본은 데이터일 뿐 — 재생기·테스트가 공유하는 단일 원본.
 
 ### 2. 재생기 — `scripts/workevents/replay.mjs`
