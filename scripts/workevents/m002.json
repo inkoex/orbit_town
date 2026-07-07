@@ -1,0 +1,19 @@
+{
+  "source": "fake",
+  "runPrefix": "m002",
+  "restSeconds": 5,
+  "script": [
+    { "delay": 0, "agentName": "Atlas", "type": "run_started", "summary": "M002 시작 — \"Orbit 런칭 영상 제작·발행\"" },
+    { "delay": 4, "agentName": "Atlas", "type": "task_assigned", "summary": "작업 분해: 리서치 → 대본 → 렌더 → 발행" },
+    { "delay": 4, "agentName": "Nova", "type": "tool_call_started", "summary": "타깃 시청자·핵심 메시지 조사 중…" },
+    { "delay": 5, "agentName": "Nova", "type": "tool_call_finished", "summary": "\"방향 있는 생산자\" 앵글 3개 도출" },
+    { "delay": 4, "agentName": "Nova", "type": "agent_message", "summary": "마케팅에 전달 — audience-brief.md" },
+    { "delay": 4, "agentName": "Vega", "type": "tool_call_started", "summary": "/vg-story 로 대본 생성 중…" },
+    { "delay": 5, "agentName": "Vega", "type": "artifact_created", "summary": "대본+음성+자막 완성 — script.md, voice.mp3" },
+    { "delay": 4, "agentName": "Vega", "type": "tool_call_started", "summary": "Remotion 렌더링 중…" },
+    { "delay": 5, "agentName": "Vega", "type": "artifact_created", "summary": "orbit-launch.mp4 렌더 완료" },
+    { "delay": 4, "type": "decision_recorded", "summary": "⏸ 창업자 승인 대기: \"유튜브 발행?\"" },
+    { "delay": 5, "agentName": "Vega", "type": "status_changed", "summary": "승인됨 — 발행 완료" },
+    { "delay": 4, "agentName": "Atlas", "type": "run_finished", "summary": "M002 완료" }
+  ]
+}
