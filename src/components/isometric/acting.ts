@@ -77,6 +77,16 @@ function nameHash(name: string): number {
   return Math.abs([...name].reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) | 0, 0));
 }
 
+// 연기 시작 스냅 방지: 절대시간 위상 때문에 지시가 켜지는 프레임의 offsetX가
+// 임의값(최대 0.5타일 순간이동)일 수 있다 — 리뷰에서 확인된 트레이드오프.
+// direction.since(이벤트 시각) 기준 1.2초 램프로 오프셋을 키워서 부드럽게 진입.
+// since는 서버 타임스탬프라 멀티탭 결정론이 유지된다.
+const ONSET_RAMP_MS = 1200;
+
+export function pacingOnsetScale(since: number, now: number): number {
+  return Math.min(1, Math.max(0, (now - since) / ONSET_RAMP_MS));
+}
+
 export function pacingPose(
   name: string,
   now: number,

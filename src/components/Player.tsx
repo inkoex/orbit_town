@@ -20,7 +20,7 @@ import { deriveActiveState, debugActiveState } from './isometric/activeState';
 import { SpeechBubble } from './isometric/SpeechBubble';
 import { ConversationBubble } from './isometric/ConversationBubble';
 import { debugBubbleText, truncateBubbleText } from './isometric/bubble';
-import { pacingPose, StageDirection } from './isometric/acting';
+import { pacingOnsetScale, pacingPose, StageDirection } from './isometric/acting';
 import type { Projection } from '../rendering/projection/Projection';
 
 const PLAYER_COLORS = [0x22d3ee, 0x4ade80, 0xfbbf24, 0xf87171, 0xa78bfa, 0xfb923c];
@@ -69,6 +69,8 @@ export const Player = ({
   const name = game.playerDescriptions.get(player.id)?.name;
   const direction = name ? stageDirections?.get(name.toLowerCase()) : undefined;
   const actingNow = useActingNow(direction?.kind === 'working');
+  // 엔진이 마지막으로 움직이던 시각 — 서성임 재진입 디바운스용 (Frozen에선 0 유지).
+  const lastEngineMovingRef = useRef(0);
   if (!character) {
     if (!logged.has(playerCharacter)) {
       logged.add(playerCharacter);
@@ -155,14 +157,19 @@ export const Player = ({
     // 연기 오버라이드: 서버 데이터는 불변, 렌더에 넘기는 값만 바꾼다 (부록 A VisualAgent).
     // 엔진 우선 규칙: 엔진이 이 아바타를 실제로 움직이는 동안은 엔진이 완전히
     // 이긴다(위치·facing·걷기). 안 그러면 "부동자세 글라이딩" 유령이 나온다 —
-    // 연기는 말풍선·하이라이트(·앰버)만 유지.
+    // 연기는 말풍선·하이라이트(·앰버)만 유지. 엔진이 멈춘 뒤에도 600ms 지나야
+    // 서성임을 켠다(경로 재계산이 speed 0을 잠깐 찍는 지터 필터 — 리뷰 발견).
     const engineMoving = historicalLocation.speed > 0;
+    if (engineMoving) lastEngineMovingRef.current = actingNow;
+    const engineSettled = actingNow - lastEngineMovingRef.current > 600;
     const pose =
-      direction?.kind === 'working' && name && !engineMoving
+      direction?.kind === 'working' && name && !engineMoving && engineSettled
         ? pacingPose(name, actingNow)
         : undefined;
+    // 온셋 램프: 연기 시작 프레임의 오프셋 스냅(최대 0.5타일)을 1.2s에 걸쳐 완화.
+    const onset = direction ? pacingOnsetScale(direction.since, actingNow) : 0;
     const renderPosition = pose
-      ? { x: historicalLocation.x + pose.offsetX, y: historicalLocation.y }
+      ? { x: historicalLocation.x + pose.offsetX * onset, y: historicalLocation.y }
       : historicalLocation;
     const renderFacing = pose
       ? pose.facing

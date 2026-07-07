@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import {
   ACTING_TTL_MS,
   deriveStageDirections,
+  pacingOnsetScale,
   pacingPose,
   WorkEventLike,
 } from './acting';
@@ -135,5 +136,26 @@ describe('pacingPose v2 — 걷고-서고 리듬, 절대시간 결정론', () =>
       return `${p.offsetX.toFixed(3)}:${p.speed}`;
     });
     expect(new Set(keys).size).toBeGreaterThan(1);
+  });
+});
+
+describe('pacingOnsetScale — 연기 시작 스냅 방지 램프', () => {
+  test('시작 순간 0, 램프(1.2s) 후 1, 사이는 단조증가', () => {
+    const since = 10_000;
+    expect(pacingOnsetScale(since, since)).toBe(0);
+    expect(pacingOnsetScale(since, since + 1200)).toBe(1);
+    expect(pacingOnsetScale(since, since + 5000)).toBe(1);
+    let prev = 0;
+    for (let dt = 0; dt <= 1200; dt += 100) {
+      const s = pacingOnsetScale(since, since + dt);
+      expect(s).toBeGreaterThanOrEqual(prev);
+      expect(s).toBeGreaterThanOrEqual(0);
+      expect(s).toBeLessThanOrEqual(1);
+      prev = s;
+    }
+  });
+
+  test('now < since(시계 어긋남)에도 0으로 안전', () => {
+    expect(pacingOnsetScale(10_000, 9_000)).toBe(0);
   });
 });
