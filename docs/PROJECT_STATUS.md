@@ -69,6 +69,9 @@
 
 ## 열린 실타래 / 주의
 
+- **🔐 백업 리모트 확보 (07-07):** `origin` = **github.com/inkoex/orbit_town (private)** — 브랜치 2개+태그 2개 push됨. 원본 a16z 레포는 `upstream`으로 rename. **세션 마무리마다 `git push` 습관화.** 인증은 macOS 키체인(HTTPS)이 처리.
+- **다음 칸 확정 (07-07): 슬라이스 ②a = 아바타 최소 연기.** 클라이언트 전용(Frozen 유지, 부록 A 안무 아키텍처): workEvents 구독→안무가(이벤트→무대지시 순수함수)→연기 레이어(표시 좌표 오버라이드, 기존 걷기 애니 재사용). 최소 3동작만: 담당 아바타 하이라이트+작업 스팟 이동 / `decision_recorded`=멈춤+⏸ 말풍선 / `run_finished`=복귀. 입력 형식 = M002 대본의 `{agentName, type}`. B안(진짜 미니 Company OS)은 ②a 다음 — "연기가 준비된 무대에 진짜 배우". videoGen 단품 결제는 유저 진행 예정.
+
 - **LLM 비용 목표 = ₩10k/월·10 agents.** OpenAI($30 충전) + cadence 튜닝으로 당분간 OK. **완전 무료 엔드게임 = 로컬 Convex(`convex dev --local`) + 로컬 Ollama** — Ollama 이미 설치됨(`gemma4` 9.6GB 있음), **`nomic-embed-text` 임베딩 모델만 추가 pull 필요**. 클라우드 Convex는 로컬 Ollama에 못 닿으니 로컬 Convex 필수(= Convex 쿼터도 동시 해결). 별도 세션.
 - **모델 티어링**(유휴=초저가/로컬, 작업=좋은 모델)이 비용 핵심 레버 — 사업 노트와 일치. `~/.claude` 메모리 `project-orbit-business-thesis`.
 - Convex write-conflict(engines/worldStatus) = AI Town 단일-핫-문서 패턴, 지금 무해. 상용화 시 병목.
