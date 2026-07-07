@@ -2,7 +2,7 @@
 
 날짜: 2026-07-07
 대상: https://www.youtube.com/watch?v=V69uyXXMZq8 ("Claude Code에게 일 시키기 지쳐서, 그냥 회사를 차렸습니다")
-상태: **초안 — 발행 전 창업자 승인 필요** (실제 승인 게이트)
+상태: **✅ 승인됨 (2026-07-08 창업자 결정) — 발행은 창업자가 유튜브 계정으로 직접.** 승인 게이트 이벤트 기록: `claude-appr-r1-s7`(대기) → `s8`(승인) → `s9`(완료)
 전략 근거: `~/.claude` 메모리 `project-vibelabs-videogen-and-leesukhyun` — "결과물 먼저" friendly approach
 
 ## 타이밍 판단
