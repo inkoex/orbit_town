@@ -1,5 +1,6 @@
 import { Character } from './Character.tsx';
-import { Graphics } from '@pixi/react';
+import { Graphics, useTick } from '@pixi/react';
+import { useRef, useState } from 'react';
 import { orientationDegrees } from '../../convex/util/geometry.ts';
 import { characters } from '../../data/characters.ts';
 import { worldToScreenCenter } from '../utils/coords';
@@ -19,6 +20,7 @@ import { deriveActiveState, debugActiveState } from './isometric/activeState';
 import { SpeechBubble } from './isometric/SpeechBubble';
 import { ConversationBubble } from './isometric/ConversationBubble';
 import { debugBubbleText, truncateBubbleText } from './isometric/bubble';
+import { pacingPose, StageDirection } from './isometric/acting';
 import type { Projection } from '../rendering/projection/Projection';
 
 const PLAYER_COLORS = [0x22d3ee, 0x4ade80, 0xfbbf24, 0xf87171, 0xa78bfa, 0xfb923c];
@@ -36,6 +38,7 @@ export const Player = ({
   originX = 0,
   isoProjection,
   worldId,
+  stageDirections,
 }: {
   game: ServerGame;
   isViewer: boolean;
@@ -46,6 +49,8 @@ export const Player = ({
   isoProjection?: Projection;
   // Needed only by the iso speech-bubble query (listMessages).
   worldId?: Id<'worlds'>;
+  // 슬라이스 ②a: 이름(소문자) → 무대지시. 있으면 렌더 직전 오버라이드.
+  stageDirections?: Map<string, StageDirection>;
 }) => {
   const playerCharacter = game.playerDescriptions.get(player.id)?.character;
   if (!playerCharacter) {
@@ -60,6 +65,10 @@ export const Player = ({
     playerLocation(player),
     locationBuffer,
   );
+  // 연기(②a): 훅이라 early return들보다 앞에서 호출 (모든 렌더에서 같은 순서).
+  const name = game.playerDescriptions.get(player.id)?.name;
+  const direction = name ? stageDirections?.get(name.toLowerCase()) : undefined;
+  const actingNow = useActingNow(direction?.kind === 'working');
   if (!character) {
     if (!logged.has(playerCharacter)) {
       logged.add(playerCharacter);
@@ -103,15 +112,16 @@ export const Player = ({
     // Active = a real busy signal right now (typing/thinking/moving/activity).
     // ISO_STATE_DEBUG forces a deterministic split so the contrast is visible
     // even when live data happens to be all-idle. Same signals the 2D path uses.
-    const activeState = ISO_STATE_DEBUG
-      ? debugActiveState(player.id)
-      : deriveActiveState({
-          isSpeaking: game.typingPlayerIds.has(player.id),
-          isThinking: game.thinkingPlayerIds.has(player.id),
-          isMoving: historicalLocation.speed > 0,
-          hasLiveActivity: !!player.activity && player.activity.until > now,
-        });
-    const name = game.playerDescriptions.get(player.id)?.name;
+    const activeState = direction
+      ? 'active'
+      : ISO_STATE_DEBUG
+        ? debugActiveState(player.id)
+        : deriveActiveState({
+            isSpeaking: game.typingPlayerIds.has(player.id),
+            isThinking: game.thinkingPlayerIds.has(player.id),
+            isMoving: historicalLocation.speed > 0,
+            hasLiveActivity: !!player.activity && player.activity.until > now,
+          });
     // Bubble priority: debug > typing dots > live conversation message > idle
     // activity. Invited/walkingOver members show nothing (not participating).
     const conversation = game.world.playerConversation(player);
@@ -132,19 +142,34 @@ export const Player = ({
           now={now}
         />
       );
+    } else if (direction) {
+      bubble = (
+        <SpeechBubble
+          text={`${direction.kind === 'working' ? '⚙' : '⏸'} ${truncateBubbleText(direction.summary, 24)}`}
+        />
+      );
     } else if (!conversation && player.activity && player.activity.until > now) {
       const { emoji, description } = player.activity;
       bubble = <SpeechBubble text={`${emoji ?? ''} ${truncateBubbleText(description, 24)}`} />;
     }
+    // 연기 오버라이드: 서버 데이터는 불변, 렌더에 넘기는 값만 바꾼다 (부록 A VisualAgent).
+    const pose = direction?.kind === 'working' && name ? pacingPose(name, actingNow) : undefined;
+    const renderPosition = pose
+      ? { x: historicalLocation.x + pose.offsetX, y: historicalLocation.y }
+      : historicalLocation;
+    const renderFacing = pose
+      ? pose.facing
+      : { dx: historicalLocation.dx, dy: historicalLocation.dy };
+    const renderSpeed = pose ? pose.speed : direction ? 0 : historicalLocation.speed;
     return (
       <IsoCharacter
         role={isViewer ? 'human' : 'agent'}
         avatarId={playerCharacter}
         name={name}
-        position={historicalLocation}
-        facing={{ dx: historicalLocation.dx, dy: historicalLocation.dy }}
-        speed={historicalLocation.speed}
-        simulationTime={historicalTime ?? Date.now()}
+        position={renderPosition}
+        facing={renderFacing}
+        speed={renderSpeed}
+        simulationTime={direction ? actingNow : (historicalTime ?? Date.now())}
         projection={isoProjection}
         selected={isViewer}
         activeState={activeState}
@@ -188,3 +213,19 @@ export const Player = ({
     </>
   );
 };
+
+// 연기 중일 때만 ~10fps로 리렌더를 유발하는 시계. Frozen 월드에선 서버발
+// 리렌더가 없어서, 이 시계가 없으면 서성임이 정지 사진이 된다.
+function useActingNow(active: boolean): number {
+  const [now, setNow] = useState(() => Date.now());
+  const last = useRef(0);
+  useTick(() => {
+    if (!active) return;
+    const t = Date.now();
+    if (t - last.current > 100) {
+      last.current = t;
+      setNow(t);
+    }
+  });
+  return now;
+}
