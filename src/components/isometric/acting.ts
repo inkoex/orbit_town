@@ -63,10 +63,15 @@ export function deriveStageDirections(
   return directions;
 }
 
-// ---- 서성임(pacing) ----
-// 주기 6초 삼각파로 x축 ±1타일 왕복. 위상은 이름 해시로 어긋나게(동기화 행진 방지).
-const PACING_PERIOD_MS = 6000;
-const PACING_AMPLITUDE_TILES = 1;
+// ---- 서성임(pacing) v2: 걷고-서고 리듬 ----
+// v1(쉼 없는 삼각파 ±1타일)은 "배회"로 읽혔다(유저: 부산스럽다). 진짜 서성임은
+// 걷기→멈춤의 리듬: 10초 주기 4구간 — +x 걷기(1.8s) / 서기(3.2s) / -x 걷기(1.8s)
+// / 서기(3.2s), 진폭 0.5타일. 서 있는 시간 64% = "책상 앞에서 가끔 들썩".
+// 위상은 이름 해시로 어긋나게(동기화 행진 방지). 여전히 (name, now)만의 함수.
+const PACING_WALK_MS = 1800;
+const PACING_DWELL_MS = 3200;
+const PACING_PERIOD_MS = 2 * (PACING_WALK_MS + PACING_DWELL_MS); // 10_000
+const PACING_AMPLITUDE_TILES = 0.5;
 
 function nameHash(name: string): number {
   return Math.abs([...name].reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) | 0, 0));
@@ -77,14 +82,21 @@ export function pacingPose(
   now: number,
 ): { offsetX: number; facing: { dx: number; dy: number }; speed: number } {
   const phase = nameHash(name) % PACING_PERIOD_MS;
-  const t = ((now + phase) % PACING_PERIOD_MS) / PACING_PERIOD_MS; // 0..1
-  // 삼각파: 0→1(전반) / 1→0(후반). 전반은 +x로 걷는 중.
-  const forward = t < 0.5;
-  const tri = forward ? t * 2 : 2 - t * 2; // 0..1..0
-  const offsetX = (tri * 2 - 1) * PACING_AMPLITUDE_TILES; // -1..+1
-  return {
-    offsetX,
-    facing: { dx: forward ? 1 : -1, dy: 0 },
-    speed: 1,
-  };
+  const t = (now + phase) % PACING_PERIOD_MS;
+  const A = PACING_AMPLITUDE_TILES;
+  if (t < PACING_WALK_MS) {
+    // +x로 걷는 중: 0 → A
+    return { offsetX: (t / PACING_WALK_MS) * A, facing: { dx: 1, dy: 0 }, speed: 1 };
+  }
+  if (t < PACING_WALK_MS + PACING_DWELL_MS) {
+    // 먼 끝에서 서기 (직전 진행 방향을 바라본 채)
+    return { offsetX: A, facing: { dx: 1, dy: 0 }, speed: 0 };
+  }
+  if (t < PACING_WALK_MS + PACING_DWELL_MS + PACING_WALK_MS) {
+    // -x로 돌아오는 중: A → 0
+    const w = (t - PACING_WALK_MS - PACING_DWELL_MS) / PACING_WALK_MS;
+    return { offsetX: (1 - w) * A, facing: { dx: -1, dy: 0 }, speed: 1 };
+  }
+  // 제자리에서 서기
+  return { offsetX: 0, facing: { dx: -1, dy: 0 }, speed: 0 };
 }
