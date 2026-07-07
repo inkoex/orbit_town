@@ -45,3 +45,20 @@ export const list = query({
     return await ctx.db.query('workEvents').withIndex('sequence').order('desc').take(n);
   },
 });
+
+// Dev-only reset for replay tooling: wipes ONE source's events (e.g. the fake
+// generator clearing its previous round) without touching other sources' data.
+// Same caveat as push: public mutation for the single-user dev deployment —
+// must move behind auth before any shared deployment.
+export const clearSource = mutation({
+  args: { source: v.string() },
+  returns: v.object({ deleted: v.number() }),
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query('workEvents')
+      .withIndex('sourceExternalId', (q) => q.eq('source', args.source))
+      .collect();
+    await Promise.all(rows.map((row) => ctx.db.delete(row._id)));
+    return { deleted: rows.length };
+  },
+});
