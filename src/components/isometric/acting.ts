@@ -47,7 +47,8 @@ export function deriveStageDirections(
       const key = target.toLowerCase();
       if (settled.has(key)) continue;
       settled.add(key);
-      if (now - eventTime(e) > ACTING_TTL_MS) continue;
+      // TTL 면제: 승인 대기는 "사람이 결정할 때까지"가 본질 — working의 TTL은
+      // 죽은 소스 정리용이지만, 대기는 오래될수록 오히려 보여야 할 정보다.
       directions.set(key, { kind: 'awaiting_approval', summary: e.summary, since: eventTime(e) });
       continue;
     }

@@ -45,7 +45,7 @@
 | `run_finished` | 해제 (유휴 복귀) |
 | `decision_recorded` (SYS) | `awaiting_approval` — 같은 `externalRunId`에서 **직전에 연기하던(agentName 있는 최신) 아바타**에게 귀속 |
 
-**TTL 90초** — 아바타의 최신 이벤트 시각(sourceTimestamp, 없으면 `_creationTime`)에서 90초 경과 시 해제. 재생기가 죽어도 영원히 일하는 척 금지. `run_finished`는 즉시.
+**TTL 90초 (`working`만)** — 아바타의 최신 이벤트 시각(sourceTimestamp, 없으면 `_creationTime`)에서 90초 경과 시 해제. 재생기가 죽어도 영원히 일하는 척 금지. `run_finished`는 즉시. **`awaiting_approval`은 TTL 면제** — 사람이 결정할 때까지 대기가 본질 (07-07 실작업 승인 게이트 실험에서 확인: 창업자가 90초 안에 결정 안 하면 대기가 사라지는 건 오답. 해제는 후속 이벤트(status_changed/run_finished)로만).
 
 **서성임 (working일 때)** — 정지 위치 중심 x축 ±1타일 왕복. 절대시간 슬롯: 주기 6초(3초마다 방향 전환), 위상은 `hash(agentName)`으로 어긋나게(전원 동기화 행진 방지). 반환 오프셋을 렌더 좌표에 더한다 — 서버 위치 데이터는 불변. `speed > 0`이면 기존 IsoCharacter가 걷기 애니 재생. `awaiting_approval`은 오프셋 0·speed 0(부동자세).
 

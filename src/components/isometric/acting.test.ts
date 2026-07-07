@@ -70,6 +70,16 @@ describe('deriveStageDirections — M002 대본 기준', () => {
     expect(d.size).toBe(0);
   });
 
+  test('awaiting_approval은 TTL 면제 — 사람이 결정할 때까지 기다린다', () => {
+    // 10번(승인 대기)까지 재생 후 TTL을 한참 넘겨도 Vega는 계속 대기.
+    const events = replayedEvents(T0, 10);
+    const now = events[events.length - 1].sourceTimestamp! + ACTING_TTL_MS * 10;
+    const d = deriveStageDirections(events, now);
+    expect(d.get('vega')?.kind).toBe('awaiting_approval');
+    // working이던 Nova는 TTL대로 해제된다.
+    expect(d.has('nova')).toBe(false);
+  });
+
   test('이벤트 없음 → 빈 맵', () => {
     expect(deriveStageDirections([], T0).size).toBe(0);
   });
