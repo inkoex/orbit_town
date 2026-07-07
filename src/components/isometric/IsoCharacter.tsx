@@ -22,6 +22,9 @@ interface Props {
   selected?: boolean;
   // The legibility payload: 'active' agents read as lit/full, 'idle' as dimmed.
   activeState?: ActiveState;
+  // 승인 대기(awaiting_approval): 발밑 글로우가 시안→앰버, 펄스가 느긋해진다.
+  // Company OS 상태 색 규칙(Waiting Approval = 주황)과 색 언어를 맞춘 것.
+  awaiting?: boolean;
   onClick?: () => void;
   // Overlay slot (speech bubble) — rendered inside this container so it
   // inherits the character's position and iso depth.
@@ -59,6 +62,7 @@ export function IsoCharacter({
   projection,
   selected,
   activeState = 'active',
+  awaiting = false,
   onClick,
   children,
 }: Props) {
@@ -96,14 +100,16 @@ export function IsoCharacter({
     (g: PIXI.Graphics) => {
       g.clear();
       if (!isActive) return;
-      g.beginFill(0x22d3ee, 0.28);
+      const outer = awaiting ? 0xffb454 : 0x22d3ee;
+      const inner = awaiting ? 0xffd28a : 0x38e6ff;
+      g.beginFill(outer, 0.28);
       g.drawEllipse(0, 0, 46, 23);
       g.endFill();
-      g.beginFill(0x38e6ff, 0.22);
+      g.beginFill(inner, 0.22);
       g.drawEllipse(0, 0, 28, 14);
       g.endFill();
     },
-    [isActive],
+    [isActive, awaiting],
   );
 
   // Name chip geometry at 2x (the chip container renders at scale 0.5).
@@ -127,8 +133,9 @@ export function IsoCharacter({
 
   return (
     <Container x={x} y={y} zIndex={isoDepthKey(position, 'object', 50)} sortableChildren>
-      {/* Active agents pulse their underfoot halo — a soft "working" heartbeat. */}
-      <Pulse periodMs={1900} min={0.45} max={1} zIndex={-1}>
+      {/* Active agents pulse their underfoot halo — a soft "working" heartbeat.
+          Awaiting-approval slows to a patient amber breath. */}
+      <Pulse periodMs={awaiting ? 2600 : 1900} min={0.45} max={1} zIndex={-1}>
         <Graphics draw={drawActiveGlow} />
       </Pulse>
       <Graphics draw={drawRing} zIndex={0} />

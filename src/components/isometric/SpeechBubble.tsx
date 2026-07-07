@@ -8,10 +8,12 @@ import { bubbleAlpha } from './bubble';
 // Purely presentational — message selection/fade math lives in bubble.ts.
 //
 // Coordinates are in the IsoCharacter container space (0,0 = foot contact).
-// Sprite is 256 tall with foot anchor 0.88, so the head top sits at ≈ -225;
-// the tail tip floats just above it.
-const TAIL_TIP_Y = -238;
-const PANEL_BOTTOM_Y = -252;
+// Sprite is 256 tall with foot anchor 0.88 (frame top ≈ -225), but the PNGs
+// carry transparent headroom — the VISIBLE head ends lower, so anchoring to the
+// frame top made bubbles float ("남의 말풍선" 현상). Tuned 40px down to hug the
+// visible head instead.
+const TAIL_TIP_Y = -198;
+const PANEL_BOTTOM_Y = -212;
 const PAD = 18;
 const MAX_TEXT_W = 420;
 

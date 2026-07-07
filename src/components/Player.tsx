@@ -145,7 +145,7 @@ export const Player = ({
     } else if (direction) {
       bubble = (
         <SpeechBubble
-          text={`${direction.kind === 'working' ? '⚙' : '⏸'} ${truncateBubbleText(direction.summary, 24)}`}
+          text={`${direction.kind === 'working' ? '⚙' : '⏸'} ${truncateBubbleText(direction.summary, 40)}`}
         />
       );
     } else if (!conversation && player.activity && player.activity.until > now) {
@@ -153,14 +153,25 @@ export const Player = ({
       bubble = <SpeechBubble text={`${emoji ?? ''} ${truncateBubbleText(description, 24)}`} />;
     }
     // 연기 오버라이드: 서버 데이터는 불변, 렌더에 넘기는 값만 바꾼다 (부록 A VisualAgent).
-    const pose = direction?.kind === 'working' && name ? pacingPose(name, actingNow) : undefined;
+    // 엔진 우선 규칙: 엔진이 이 아바타를 실제로 움직이는 동안은 엔진이 완전히
+    // 이긴다(위치·facing·걷기). 안 그러면 "부동자세 글라이딩" 유령이 나온다 —
+    // 연기는 말풍선·하이라이트(·앰버)만 유지.
+    const engineMoving = historicalLocation.speed > 0;
+    const pose =
+      direction?.kind === 'working' && name && !engineMoving
+        ? pacingPose(name, actingNow)
+        : undefined;
     const renderPosition = pose
       ? { x: historicalLocation.x + pose.offsetX, y: historicalLocation.y }
       : historicalLocation;
     const renderFacing = pose
       ? pose.facing
       : { dx: historicalLocation.dx, dy: historicalLocation.dy };
-    const renderSpeed = pose ? pose.speed : direction ? 0 : historicalLocation.speed;
+    const renderSpeed = pose
+      ? pose.speed
+      : direction && !engineMoving
+        ? 0
+        : historicalLocation.speed;
     return (
       <IsoCharacter
         role={isViewer ? 'human' : 'agent'}
@@ -169,7 +180,8 @@ export const Player = ({
         position={renderPosition}
         facing={renderFacing}
         speed={renderSpeed}
-        simulationTime={direction ? actingNow : (historicalTime ?? Date.now())}
+        simulationTime={direction && !engineMoving ? actingNow : (historicalTime ?? Date.now())}
+        awaiting={direction?.kind === 'awaiting_approval'}
         projection={isoProjection}
         selected={isViewer}
         activeState={activeState}
